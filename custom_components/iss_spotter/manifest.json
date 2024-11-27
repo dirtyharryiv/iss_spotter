@@ -7,8 +7,8 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/dirtyharryiv/iss_spotter",
-  "issue_tracker": "https://github.com/dirtyharryiv/iss_spotter/issues",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/dirtyharryiv/iss_spotter/issues",
   "requirements": [
     "beautifulsoup4"
   ],
