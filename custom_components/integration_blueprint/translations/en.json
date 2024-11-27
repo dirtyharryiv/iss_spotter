@@ -2,17 +2,17 @@
     "config": {
         "step": {
             "user": {
-                "description": "If you need help with the configuration have a look here: https://github.com/ludeeus/integration_blueprint",
+                "title": "Configure ISS Spotter",
+                "description": "Give an url and a maximal height the ISS must reach.",
                 "data": {
-                    "username": "Username",
-                    "password": "Password"
+                    "url": "Spot the Station URL",
+                    "max_height": "Maximal height"
                 }
             }
         },
         "error": {
-            "auth": "Username/Password is wrong.",
-            "connection": "Unable to connect to the server.",
-            "unknown": "Unknown error occurred."
+            "invalid_url": "That's not a valid url",
+            "no_spot_the_station_address": "The Address must start with https://spotthestation.nasa.gov/sightings/view.cfm?"
         }
     }
 }

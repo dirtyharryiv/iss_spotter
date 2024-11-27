@@ -1,0 +1,18 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "ISS Spotter konfigurieren",
+                "description": "Gib eine URL ein und eine maximale Mindesthöhe ein.",
+                "data": {
+                    "url": "Spot the Station URL",
+                    "max_height": "Maxmimale Mindesthöhe"
+                }
+            }
+        },
+        "error": {
+            "invalid_url": "Die angegebene URL ist ungültig.",
+            "no_spot_the_station_address": "Die Adresse muss mit https://spotthestation.nasa.gov/sightings/view.cfm? beginnen."
+        }
+    }
+}

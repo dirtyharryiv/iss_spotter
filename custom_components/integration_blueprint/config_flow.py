@@ -1,81 +1,47 @@
-"""Adds config flow for Blueprint."""
-
-from __future__ import annotations
-
+from homeassistant import config_entries
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
+from urllib import parse
 import voluptuous as vol
-from homeassistant import config_entries, data_entry_flow
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.helpers import selector
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
-from .api import (
-    IntegrationBlueprintApiClient,
-    IntegrationBlueprintApiClientAuthenticationError,
-    IntegrationBlueprintApiClientCommunicationError,
-    IntegrationBlueprintApiClientError,
-)
-from .const import DOMAIN, LOGGER
-
-
-class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for Blueprint."""
+class SpotStationConfigFlow(config_entries.ConfigFlow, domain="iss_spotter"):
+    """Handle a config flow for Spot Station."""
 
     VERSION = 1
 
-    async def async_step_user(
-        self,
-        user_input: dict | None = None,
-    ) -> data_entry_flow.FlowResult:
-        """Handle a flow initialized by the user."""
-        _errors = {}
+    def __init__(self):
+        """Initialize."""
+        self._url = None
+        self._max_height = None
+
+    async def async_step_user(self, user_input=None):
+        """Handle the user input for the configuration."""
+        errors = {}
+
         if user_input is not None:
+            self._url = user_input["url"]
+            self._max_height = user_input["max_height"]
+
             try:
-                await self._test_credentials(
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
-                )
-            except IntegrationBlueprintApiClientAuthenticationError as exception:
-                LOGGER.warning(exception)
-                _errors["base"] = "auth"
-            except IntegrationBlueprintApiClientCommunicationError as exception:
-                LOGGER.error(exception)
-                _errors["base"] = "connection"
-            except IntegrationBlueprintApiClientError as exception:
-                LOGGER.exception(exception)
-                _errors["base"] = "unknown"
-            else:
-                return self.async_create_entry(
-                    title=user_input[CONF_USERNAME],
-                    data=user_input,
-                )
+                cv.url(self._url)  # Config Validation URL-Prüfung
+                if "https://spotthestation.nasa.gov/sightings/view.cfm?" in self._url.lower():
+                    city = parse.parse_qs(parse.urlparse(self._url).query)['city'][0].replace("_", " ")
+                    return self.async_create_entry(
+                        title="ISS Next Sightings " + city,
+                        data={"url": self._url, "max_height": self._max_height}
+                    )
+                else:
+                    errors["base"] = "no_spot_the_station_address"
+            except vol.Invalid:
+                errors["base"] = "invalid_url"
 
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        CONF_USERNAME,
-                        default=(user_input or {}).get(CONF_USERNAME, vol.UNDEFINED),
-                    ): selector.TextSelector(
-                        selector.TextSelectorConfig(
-                            type=selector.TextSelectorType.TEXT,
-                        ),
-                    ),
-                    vol.Required(CONF_PASSWORD): selector.TextSelector(
-                        selector.TextSelectorConfig(
-                            type=selector.TextSelectorType.PASSWORD,
-                        ),
-                    ),
-                },
+                    vol.Required("url", default="https://spotthestation.nasa.gov/sightings/view.cfm?country=Germany&region=None&city=Freiburg_im_Breisgau"): str,
+                    vol.Optional("max_height", default=20): int
+                }
             ),
-            errors=_errors,
+            errors=errors
         )
-
-    async def _test_credentials(self, username: str, password: str) -> None:
-        """Validate credentials."""
-        client = IntegrationBlueprintApiClient(
-            username=username,
-            password=password,
-            session=async_create_clientsession(self.hass),
-        )
-        await client.async_get_data()
