@@ -1,3 +1,5 @@
+"""Adds config flow for ISS Spotter."""
+
 from urllib import parse
 
 import voluptuous as vol
@@ -10,12 +12,12 @@ class SpotStationConfigFlow(config_entries.ConfigFlow, domain="iss_spotter"):
 
     VERSION = 1
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize."""
         self._url = None
         self._max_height = None
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input: dict | None = None) -> dict:
         """Handle the user input for the configuration."""
         errors = {}
 

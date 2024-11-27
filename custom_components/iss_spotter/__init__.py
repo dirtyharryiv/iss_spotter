@@ -1,8 +1,14 @@
+"""
+Custom integration to integrate ISS Spot the Station.
+
+ISS Spot the Station NASA Website.
+"""
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Spot Station from a config entry."""
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
@@ -10,7 +16,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Spot Station config entry."""
     await hass.config_entries.async_forward_entry_unload(entry, "sensor")
     return True
