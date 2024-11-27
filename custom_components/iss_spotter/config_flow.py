@@ -1,8 +1,9 @@
-from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv
 from urllib import parse
+
 import voluptuous as vol
+from homeassistant import config_entries
+from homeassistant.helpers import config_validation as cv
+
 
 class SpotStationConfigFlow(config_entries.ConfigFlow, domain="iss_spotter"):
     """Handle a config flow for Spot Station."""
@@ -24,14 +25,18 @@ class SpotStationConfigFlow(config_entries.ConfigFlow, domain="iss_spotter"):
 
             try:
                 cv.url(self._url)  # Config Validation URL-Prüfung
-                if "https://spotthestation.nasa.gov/sightings/view.cfm?" in self._url.lower():
-                    city = parse.parse_qs(parse.urlparse(self._url).query)['city'][0].replace("_", " ")
+                if (
+                    "https://spotthestation.nasa.gov/sightings/view.cfm?"
+                    in self._url.lower()
+                ):
+                    city = parse.parse_qs(parse.urlparse(self._url).query)["city"][
+                        0
+                    ].replace("_", " ")
                     return self.async_create_entry(
                         title="ISS Next Sightings " + city,
-                        data={"url": self._url, "max_height": self._max_height}
+                        data={"url": self._url, "max_height": self._max_height},
                     )
-                else:
-                    errors["base"] = "no_spot_the_station_address"
+                errors["base"] = "no_spot_the_station_address"
             except vol.Invalid:
                 errors["base"] = "invalid_url"
 
@@ -39,9 +44,12 @@ class SpotStationConfigFlow(config_entries.ConfigFlow, domain="iss_spotter"):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required("url", default="https://spotthestation.nasa.gov/sightings/view.cfm?country=Germany&region=None&city=Freiburg_im_Breisgau"): str,
-                    vol.Optional("max_height", default=20): int
+                    vol.Required(
+                        "url",
+                        default="https://spotthestation.nasa.gov/sightings/view.cfm?country=Germany&region=None&city=Freiburg_im_Breisgau",
+                    ): str,
+                    vol.Optional("max_height", default=20): int,
                 }
             ),
-            errors=errors
+            errors=errors,
         )

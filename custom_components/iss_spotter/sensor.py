@@ -1,12 +1,11 @@
+import logging
+from datetime import datetime, timedelta
+from urllib import parse
+
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
-import pytz
-import logging
-from urllib import parse
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.event import async_track_time_interval
-from homeassistant import config_entries
+
 # from .const import DOMAIN
 
 # Erstelle einen Logger
@@ -14,8 +13,10 @@ _LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = timedelta(minutes=5)
 
+
 async def async_fetch_spot_station_data(hass, url, max_height):
     """Fetch ISS sighting data asynchronously."""
+
     def fetch_data():
         try:
             _LOGGER.debug("URL at %s", url)
@@ -25,7 +26,9 @@ async def async_fetch_spot_station_data(hass, url, max_height):
             _LOGGER.debug("Got Data at %s", datetime.now())
 
             soup = BeautifulSoup(response.text, "html.parser")
-            table = soup.select_one("#content > div.col-md-11.col-md-offset-1 > div.table-responsive > table:nth-child(2)")
+            table = soup.select_one(
+                "#content > div.col-md-11.col-md-offset-1 > div.table-responsive > table:nth-child(2)"
+            )
             if not table:
                 return None
 
@@ -35,7 +38,10 @@ async def async_fetch_spot_station_data(hass, url, max_height):
                 columns = row.find_all("td")
                 if len(columns) >= 5:
                     now = datetime.now()
-                    datetime_object = datetime.strptime(columns[0].text.strip() + " " + str(now.year), '%a %b %d, %I:%M %p %Y') + timedelta(minutes=5)
+                    datetime_object = datetime.strptime(
+                        columns[0].text.strip() + " " + str(now.year),
+                        "%a %b %d, %I:%M %p %Y",
+                    ) + timedelta(minutes=5)
 
                     if datetime_object < now:
                         continue
@@ -44,16 +50,17 @@ async def async_fetch_spot_station_data(hass, url, max_height):
                     if int(height) < max_height:
                         continue
 
-
-                    sightings.append({
-                        "date": columns[0].text.strip(),
-                        "duration": columns[1].text.strip(),
-                        "max_elevation": columns[2].text.strip(),
-                        "appear": columns[3].text.strip(),
-                        "disappear": columns[4].text.strip(),
-                    })
+                    sightings.append(
+                        {
+                            "date": columns[0].text.strip(),
+                            "duration": columns[1].text.strip(),
+                            "max_elevation": columns[2].text.strip(),
+                            "appear": columns[3].text.strip(),
+                            "disappear": columns[4].text.strip(),
+                        }
+                    )
             return sightings
-        except Exception as e:
+        except Exception:
             # Speichere den Fehler in einer Logdatei
             # with open("spot_station_error.log", "w", encoding="utf-8") as f:
             #     f.write(str(e))
@@ -75,7 +82,9 @@ class SpotStationSensor(Entity):
 
     @property
     def name(self):
-        return "ISS " + parse.parse_qs(parse.urlparse(self._url).query)['city'][0].replace("_", " ")
+        return "ISS " + parse.parse_qs(parse.urlparse(self._url).query)["city"][
+            0
+        ].replace("_", " ")
 
     @property
     def state(self):
@@ -99,7 +108,9 @@ class SpotStationSensor(Entity):
 
     async def async_update(self):
         """Fetch new state data for the sensor."""
-        data = await async_fetch_spot_station_data(self.hass, self._url, self._max_height)
+        data = await async_fetch_spot_station_data(
+            self.hass, self._url, self._max_height
+        )
         if data:
             next_sighting = data[0]  # Nächstes Ereignis
             future_sightings = data[1:]  # Alle zukünftigen Ereignisse
@@ -107,7 +118,9 @@ class SpotStationSensor(Entity):
 
             try:
                 now = datetime.now()
-                local_dt = datetime.strptime(date_time + " " + str(now.year), '%a %b %d, %I:%M %p %Y')
+                local_dt = datetime.strptime(
+                    date_time + " " + str(now.year), "%a %b %d, %I:%M %p %Y"
+                )
                 # local_dt = pytz.timezone("Europe/Berlin").localize(local_dt)
 
                 # In ISO 8601 konvertieren
@@ -116,8 +129,10 @@ class SpotStationSensor(Entity):
                     {
                         "date": datetime.strptime(
                             sighting["date"] + " " + str(datetime.now().year),
-                            '%a %b %d, %I:%M %p %Y'
-                        ).strftime('%d.%m.%Y %H:%M:%S'),  # Konvertierung ins 24-Stunden-Format
+                            "%a %b %d, %I:%M %p %Y",
+                        ).strftime(
+                            "%d.%m.%Y %H:%M:%S"
+                        ),  # Konvertierung ins 24-Stunden-Format
                         "duration": sighting["duration"],
                         "max_elevation": sighting["max_elevation"],
                         "appear": sighting["appear"],
@@ -143,6 +158,7 @@ class SpotStationSensor(Entity):
         """Wird aufgerufen, wenn der Sensor zu Home Assistant hinzugefügt wird."""
         # Sofortiges Update beim ersten Start
         await self.async_update()
+
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up Spot Station sensor based on a config entry."""
