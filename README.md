@@ -9,9 +9,10 @@ The **ISS Spotter** integration for Home Assistant allows you to track upcoming 
 
 ## Installation
 
-1. **Install via HACS: (Not yet possible)**
+1. **Install via HACS:**
    - Open Home Assistant and go to **HACS**.
-   - Click on the "Integrations" tab.
+   - Click on the three dots in the upper right corner
+   - Custom Repositories and add this repos url
    - Search for **ISS Spotter**.
    - Click **Install**.
 
