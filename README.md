@@ -39,15 +39,13 @@ The **ISS Spotter** integration for Home Assistant allows you to track upcoming 
 To get the correct URL for the ISS sightings based on your location, follow these steps:
 
 1. **Visit the NASA Spot the Station Website:**
-   Go to [NASA Spot the Station](https://spotthestation.nasa.gov/sightings/).
+   Go to [NASA Spot the Station](https://spotthestation.nasa.gov/).
 
 2. **Enter Your Location:**
-   - Click on the "View Sightings" button.
    - Enter your location in the **"City"** field. You can enter your city or a nearby city.
-   - Optionally, choose the **country** and **region**.
 
 3. **Get the URL:**
-   After entering your location, you will see a list of upcoming ISS sightings for your city.
+   After entering your location, you will see a map where you can choose the nearest viewpoint from. Click on it.
    - Look at the **URL** in your browser’s address bar. It should look something like this:
      ```
      https://spotthestation.nasa.gov/sightings/view.cfm?country=Germany&region=None&city=Freiburg_im_Breisgau
