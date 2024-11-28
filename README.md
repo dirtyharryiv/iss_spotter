@@ -92,6 +92,7 @@ def notify_Func(arg):
 
 def time_trigger_factory(sensor_entity,func_handle,func_name,*args,**kwargs):
     time_val = datetime.fromisoformat(str(state.get(sensor_entity))) - timedelta(minutes=time_in_minutes_to_notify_before)
+    time_val = time_val.strftime('%Y-%m-%d %H:%M:%S')
 
     @time_trigger(f"once({time_val})")
     def func_trig():
