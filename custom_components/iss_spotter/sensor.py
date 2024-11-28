@@ -65,7 +65,9 @@ async def async_setup_entry(
     update_interval = SCAN_INTERVAL
 
     # Initialize the coordinator
-    coordinator = ISSDataUpdateCoordinator(hass, url, max_height, min_minutes, update_interval)
+    coordinator = ISSDataUpdateCoordinator(
+        hass, url, max_height, min_minutes, update_interval
+    )
     await coordinator.async_config_entry_first_refresh()
 
     # Add the sensor with the coordinator

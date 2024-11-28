@@ -38,7 +38,11 @@ class SpotStationConfigFlow(config_entries.ConfigFlow, domain="iss_spotter"):
                     ].replace("_", " ")
                     return self.async_create_entry(
                         title="ISS Next Sightings " + city,
-                        data={"url": self._url, "max_height": self._max_height, "min_minutes": self._min_minutes},
+                        data={
+                            "url": self._url,
+                            "max_height": self._max_height,
+                            "min_minutes": self._min_minutes,
+                        },
                     )
                 errors["base"] = "no_spot_the_station_address"
             except vol.Invalid:

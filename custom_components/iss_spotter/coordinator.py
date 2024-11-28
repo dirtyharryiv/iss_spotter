@@ -22,7 +22,6 @@ def get_astronaut_info() -> tuple[int, list[str]]:
     try:
         response = requests.get(API_URL, timeout=20)
         data = response.json()
-        # astronaut_count = data["number"]  # Anzahl der Astronauten
         astronaut_names = [
             astronaut["name"]
             for astronaut in data["people"]
@@ -41,7 +40,12 @@ class ISSDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching ISS sighting data."""
 
     def __init__(
-        self, hass: HomeAssistant, url: str, max_height: int, min_minutes: int, update_interval: timedelta
+        self,
+        hass: HomeAssistant,
+        url: str,
+        max_height: int,
+        min_minutes: int,
+        update_interval: timedelta,
     ) -> None:
         """Initialize the coordinator."""
         self.url = url
