@@ -5,6 +5,7 @@ The **ISS Spotter** integration for Home Assistant allows you to track upcoming 
 ## Features
 - Displays the next ISS sighting time.
 - Shows additional details, including duration, maximum elevation, and where the ISS will appear and disappear in the sky.
+- Number of Astronauts on ISS and their names (from open-notify).
 - Automatically updates when new sighting data is available.
 - Filter for maximum elevation
 - Creates a senosr entity that way it is easy to get notified when the ISS will show up.

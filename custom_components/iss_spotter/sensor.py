@@ -48,6 +48,8 @@ class SpotStationSensor(CoordinatorEntity):
             "appear": next_sighting.get("appear"),
             "disappear": next_sighting.get("disappear"),
             "all_sightings": self.coordinator.data.get("all_sightings", []),
+            "astronaut_count": self.coordinator.data.get("astronaut_count"),
+            "astronaut_names": self.coordinator.data.get("astronaut_names"),
         }
 
 

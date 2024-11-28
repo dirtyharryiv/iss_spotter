@@ -12,6 +12,28 @@ _LOGGER = logging.getLogger(__name__)
 
 MIN_COLUMNS = 5  # Magic value for column count
 
+API_URL = (
+    "http://api.open-notify.org/astros.json"  # URL der Open Notify API für Astronauten
+)
+
+
+def get_astronaut_info() -> tuple[int, list[str]]:
+    """Get Astronaut count from Open Notify API."""
+    try:
+        response = requests.get(API_URL, timeout=20)
+        data = response.json()
+        # astronaut_count = data["number"]  # Anzahl der Astronauten
+        astronaut_names = [
+            astronaut["name"] for astronaut in data["people"] if astronaut["craft"] == "ISS"
+        ]
+        astronaut_count = len(astronaut_names)
+
+    except Exception:
+        _LOGGER.exception("Fehler beim Abrufen der Astronautenanzahl und Namen: %s")
+        return 0, []
+    else:
+        return astronaut_count, astronaut_names
+
 
 class ISSDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching ISS sighting data."""
@@ -38,6 +60,9 @@ class ISSDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Fetching ISS data from URL: %s", self.url)
                 response = requests.get(self.url, timeout=20)
                 response.raise_for_status()
+
+                # Füge die Astronauten-Informationen hinzu
+                astronaut_count, astronaut_names = get_astronaut_info()
 
                 soup = BeautifulSoup(response.text, "html.parser")
                 table = soup.select_one(
@@ -83,7 +108,12 @@ class ISSDataUpdateCoordinator(DataUpdateCoordinator):
                 if not sightings:
                     return self._handle_error("No future sightings found")
 
-                return {"next_sighting": sightings[0], "all_sightings": sightings}
+                return {
+                    "next_sighting": sightings[0],
+                    "all_sightings": sightings,
+                    "astronaut_count": astronaut_count,
+                    "astronaut_names": astronaut_names,
+                }
 
             except requests.exceptions.RequestException as e:
                 return self._handle_error(f"Request failed: {e}")
