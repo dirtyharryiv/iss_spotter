@@ -1,7 +1,6 @@
 """Class to manage fetching ISS sighting data from the Spot The Station website."""
 
 import logging
-import time
 from datetime import datetime, timedelta
 
 import requests
