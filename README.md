@@ -86,8 +86,8 @@ def time_trigger_start_time():
 
 def notify_Func(arg):
     attributes = state.getattr("sensor.iss_freiburg_im_breisgau")
-    visible_time = str(attributes["visible"])
-    max_height = str(attributes["max_height"])
+    visible_time = str(attributes["duration"])
+    max_height = str(attributes["max_elevation"])
     service.call("notify", "smartphone", message="👀🛰️The ISS will be visible IN " + str(time_in_minutes_to_notify_before) + " MINUTES! It will be visible for " + visible_time + " and it will reach a height of " + max_height + ".")
 
 def time_trigger_factory(sensor_entity,func_handle,func_name,*args,**kwargs):
