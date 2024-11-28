@@ -1,7 +1,8 @@
 """Class to manage fetching ISS sighting data from the Spot The Station website."""
 
 import logging
-from datetime import UTC, datetime, timedelta
+import time
+from datetime import datetime, timedelta
 
 import requests
 from bs4 import BeautifulSoup
@@ -84,11 +85,11 @@ class ISSDataUpdateCoordinator(DataUpdateCoordinator):
                 for row in rows:
                     columns = row.find_all("td")
                     if len(columns) >= MIN_COLUMNS:
-                        now = datetime.now(UTC)
+                        now = datetime.now().astimezone()
                         sighting_date = datetime.strptime(
                             columns[0].text.strip() + f" {now.year}",
                             "%a %b %d, %I:%M %p %Y",
-                        ).replace(tzinfo=UTC)
+                        ).astimezone()
 
                         datetime_object = datetime.strptime(
                             columns[0].text.strip() + " " + str(now.year),
