@@ -6,7 +6,8 @@
                 "description": "Gib eine URL ein und eine maximale Mindesthöhe ein.",
                 "data": {
                     "url": "Spot the Station URL",
-                    "max_height": "Maxmimale Mindesthöhe"
+                    "max_height": "Maxmimale Mindesthöhe",
+                    "min_minutes": "Mindestens sichtbar in Minuten"
                 }
             }
         },

@@ -6,7 +6,8 @@
                 "description": "Give an url and a maximal height the ISS must reach.",
                 "data": {
                     "url": "Spot the Station URL",
-                    "max_height": "Maximal height"
+                    "max_height": "Maximal height",
+                    "min_minutes": "Minimum visibility in minutes"
                 }
             }
         },

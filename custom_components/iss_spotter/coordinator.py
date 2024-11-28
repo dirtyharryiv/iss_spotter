@@ -24,7 +24,9 @@ def get_astronaut_info() -> tuple[int, list[str]]:
         data = response.json()
         # astronaut_count = data["number"]  # Anzahl der Astronauten
         astronaut_names = [
-            astronaut["name"] for astronaut in data["people"] if astronaut["craft"] == "ISS"
+            astronaut["name"]
+            for astronaut in data["people"]
+            if astronaut["craft"] == "ISS"
         ]
         astronaut_count = len(astronaut_names)
 
@@ -39,11 +41,12 @@ class ISSDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching ISS sighting data."""
 
     def __init__(
-        self, hass: HomeAssistant, url: str, max_height: int, update_interval: timedelta
+        self, hass: HomeAssistant, url: str, max_height: int, min_minutes: int, update_interval: timedelta
     ) -> None:
         """Initialize the coordinator."""
         self.url = url
         self.max_height = max_height
+        self.min_minutes = min_minutes
         super().__init__(
             hass,
             _LOGGER,
@@ -89,6 +92,10 @@ class ISSDataUpdateCoordinator(DataUpdateCoordinator):
                         ).astimezone() + timedelta(minutes=5)
 
                         if datetime_object < now:
+                            continue
+
+                        visibility = columns[1].text.strip().split(" ")[0]
+                        if int(visibility) < self.min_minutes:
                             continue
 
                         height = columns[2].text.strip().split("°")[0]
