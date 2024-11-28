@@ -17,9 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Spot Station from a config entry."""
     _LOGGER.info("Spot Station Integration Version: %s", __version__)
-    hass.async_create_task(
-        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
-    )
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
     return True
 
 
