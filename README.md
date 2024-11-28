@@ -6,7 +6,8 @@ The **ISS Spotter** integration for Home Assistant allows you to track upcoming 
 - Displays the next ISS sighting time.
 - Shows additional details, including duration, maximum elevation, and where the ISS will appear and disappear in the sky.
 - Automatically updates when new sighting data is available.
-- That way it is easy to get notified when the ISS will show up.
+- Filter for maximum elevation
+- Creates a senosr entity that way it is easy to get notified when the ISS will show up.
 
 ## Installation
 
@@ -65,6 +66,7 @@ To get the correct URL for the ISS sightings based on your location, follow thes
 ## Notification
 
 ### pyscript
+
 ```python
 from datetime import datetime, timedelta
 
@@ -98,7 +100,9 @@ def time_trigger_factory(sensor_entity,func_handle,func_name,*args,**kwargs):
     time_triggers[func_name] = func_trig
 ```
 
+
 ### yaml
+
 ```yaml
 alias: ISS Notification
 description: "Send a notification 3 minutes before the ISS sighting."
@@ -117,5 +121,13 @@ action:
       data:
         tag: iss_notification
 mode: single
-
 ```
+
+
+## GUI
+
+### Markdown card
+```markdown
+<ha-icon icon="mdi:space-station"></ha-icon>  {{ as_datetime(states('sensor.iss_freiburg_im_breisgau')).strftime('%m/%d/%Y %I:%M %p') }}
+```
+![Markdown Card](img/markdown_card.png)
