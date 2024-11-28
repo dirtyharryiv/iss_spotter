@@ -100,5 +100,22 @@ def time_trigger_factory(sensor_entity,func_handle,func_name,*args,**kwargs):
 
 ### yaml
 ```yaml
-soon
+alias: ISS Notification
+description: "Send a notification 3 minutes before the ISS sighting."
+trigger:
+  - platform: template
+    value_template: >
+      {{ (as_timestamp(states('sensor.iss_freiburg_im_breisgau')) - as_timestamp(now())) <= 180 }}
+condition: []
+action:
+  - service: notify.mobile_app_your_device_name
+    data:
+      title: "ISS sighting soon!"
+      message: >
+        The ISS will be visible in 3 minutes! Next sightings:
+        {{ states('sensor.iss_freiburg_im_breisgau') }}.
+      data:
+        tag: iss_notification
+mode: single
+
 ```
