@@ -6,6 +6,7 @@ The **ISS Spotter** integration for Home Assistant allows you to track upcoming 
 - Displays the next ISS sighting time.
 - Shows additional details, including duration, maximum elevation, and where the ISS will appear and disappear in the sky.
 - Automatically updates when new sighting data is available.
+- That way it is easy to get notified when the ISS will show up.
 
 ## Installation
 
@@ -32,20 +33,24 @@ The **ISS Spotter** integration for Home Assistant allows you to track upcoming 
 - Go to **Configuration** > **Integrations** in Home Assistant.
 - Click **+ Add Integration** and search for **ISS Spotter**.
 - Enter the URL for the ISS sighting data (e.g., [Germany Freiburg im Breisgau](https://spotthestation.nasa.gov/sightings/view.cfm?country=Germany&region=None&city=Freiburg_im_Breisgau)).
-- The integration will automatically fetch the sighting data.
+- Set a minimal height it should reach.
+- The integration will automatically create a sensor entity and fetch the sighting data.
 
 ### **How to Get the Correct URL for ISS Sightings**
 
 To get the correct URL for the ISS sightings based on your location, follow these steps:
 
 1. **Visit the NASA Spot the Station Website:**
-   Go to [NASA Spot the Station](https://spotthestation.nasa.gov/).
+
+   - Go to [NASA Spot the Station](https://spotthestation.nasa.gov/).
 
 2. **Enter Your Location:**
+
    - Enter your location in the **"City"** field. You can enter your city or a nearby city.
 
 3. **Get the URL:**
-   After entering your location, you will see a map where you can choose the nearest viewpoint from. Click on it.
+
+   - After entering your location, you will see a map where you can choose the nearest viewpoint. Click on it.
    - Look at the **URL** in your browser’s address bar. It should look something like this:
      ```
      https://spotthestation.nasa.gov/sightings/view.cfm?country=Germany&region=None&city=Freiburg_im_Breisgau
@@ -53,4 +58,47 @@ To get the correct URL for the ISS sightings based on your location, follow thes
    - This URL is the one you need to use in the **ISS Spotter** integration configuration.
 
 4. **Use the URL in Home Assistant:**
-   Copy the URL from your browser's address bar and paste it into the configuration of the **ISS Spotter** integration in Home Assistant.
+
+   - Copy the URL from your browser's address bar and paste it into the configuration of the **ISS Spotter** integration in Home Assistant.
+
+
+## Notification
+
+### pyscript
+```python
+from datetime import datetime, timedelta
+
+time_triggers = {}
+time_in_minutes_to_notify_before = 3
+
+@time_trigger("startup")
+@state_trigger("sensor.iss_freiburg_im_breisgau")
+def time_trigger_start_time():
+    date = str(state.get("sensor.iss_freiburg_im_breisgau"))
+    attributes = state.getattr("sensor.iss_freiburg_im_breisgau")
+    visible_time = str(attributes["duration"])
+    max_height = str(attributes["max_elevation"])
+    service.call("notify", "smarpthone", message="🌍🛰️New date for ISS sighting: " + date + "\nIt will be visible for " + visible_time + " and it will reach a height of " + max_height + ".")
+    time_trigger_factory("sensor.iss_freiburg_im_breisgau",notify_Func,"notify_Func","my_args")
+
+def notify_Func(arg):
+    attributes = state.getattr("sensor.iss_freiburg_im_breisgau")
+    visible_time = str(attributes["visible"])
+    max_height = str(attributes["max_height"])
+    service.call("notify", "smartphone", message="👀🛰️The ISS will be visible IN " + str(time_in_minutes_to_notify_before) + " MINUTES! It will be visible for " + visible_time + " and it will reach a height of " + max_height + ".")
+
+def time_trigger_factory(sensor_entity,func_handle,func_name,*args,**kwargs):
+    time_val = datetime.fromisoformat(str(state.get(sensor_entity))) - timedelta(minutes=time_in_minutes_to_notify_before)
+
+    @time_trigger(f"once({time_val})")
+    def func_trig():
+        nonlocal args, kwargs
+        func_handle(*args,**kwargs)
+
+    time_triggers[func_name] = func_trig
+```
+
+### yaml
+```yaml
+soon
+```

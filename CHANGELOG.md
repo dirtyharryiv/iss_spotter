@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.1] - 2024-11-27
+### Added
+- pyscript notification example
+
 ## [1.0.0] - 2024-11-27
 ### Added
 - Implemented a new `coordinator` to manage ISS data fetching.
