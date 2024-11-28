@@ -9,7 +9,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 _LOGGER = logging.getLogger(__name__)
 
