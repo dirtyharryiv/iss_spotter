@@ -11,7 +11,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .coordinator import ISSDataUpdateCoordinator
+from .coordinator import ISSInfoUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class SpotStationSensor(CoordinatorEntity):
     """Representation of the Spot Station sensor."""
 
     def __init__(
-        self, coordinator: ISSDataUpdateCoordinator, name: str, unique_id: str
+        self, coordinator: ISSInfoUpdateCoordinator, name: str, unique_id: str
     ) -> None:
         """Initialize the SpotStationSensor."""
         super().__init__(coordinator)
@@ -65,7 +65,7 @@ async def async_setup_entry(
     update_interval = SCAN_INTERVAL
 
     # Initialize the coordinator
-    coordinator = ISSDataUpdateCoordinator(
+    coordinator = ISSInfoUpdateCoordinator(
         hass, url, max_height, min_minutes, update_interval
     )
     await coordinator.async_config_entry_first_refresh()

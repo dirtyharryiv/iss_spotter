@@ -1,13 +1,19 @@
-"""Adds config flow for ISS Spotter."""
+"""Config Flow for ISS Spotter."""
 
 from urllib import parse
 
 import voluptuous as vol
-from homeassistant import config_entries
+from homeassistant.config_entries import (
+    ConfigFlow,
+    ConfigFlowResult,
+)
+from homeassistant.const import CONF_URL
 from homeassistant.helpers import config_validation as cv
 
+from .const import DEFAULT_MAX_HEIGHT, DEFAULT_MIN_MINUTES, DEFAULT_URL, DOMAIN
 
-class SpotStationConfigFlow(config_entries.ConfigFlow, domain="iss_spotter"):
+
+class SpotStationConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Spot Station."""
 
     VERSION = 1
@@ -18,12 +24,12 @@ class SpotStationConfigFlow(config_entries.ConfigFlow, domain="iss_spotter"):
         self._max_height = None
         self._min_minutes = None
 
-    async def async_step_user(self, user_input: dict | None = None) -> dict:
+    async def async_step_user(self, user_input: dict | None = None) -> ConfigFlowResult:
         """Handle the user input for the configuration."""
         errors = {}
 
         if user_input is not None:
-            self._url = user_input["url"]
+            self._url = user_input[CONF_URL]
             self._max_height = user_input["max_height"]
             self._min_minutes = user_input["min_minutes"]
 
@@ -39,7 +45,7 @@ class SpotStationConfigFlow(config_entries.ConfigFlow, domain="iss_spotter"):
                     return self.async_create_entry(
                         title="ISS Next Sightings " + city,
                         data={
-                            "url": self._url,
+                            CONF_URL: self._url,
                             "max_height": self._max_height,
                             "min_minutes": self._min_minutes,
                         },
@@ -53,11 +59,11 @@ class SpotStationConfigFlow(config_entries.ConfigFlow, domain="iss_spotter"):
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        "url",
-                        default="https://spotthestation.nasa.gov/sightings/view.cfm?country=Germany&region=None&city=Freiburg_im_Breisgau",
+                        CONF_URL,
+                        default=DEFAULT_URL,
                     ): str,
-                    vol.Optional("max_height", default=20): int,
-                    vol.Optional("min_minutes", default=2): int,
+                    vol.Optional("max_height", default=DEFAULT_MAX_HEIGHT): int,
+                    vol.Optional("min_minutes", default=DEFAULT_MIN_MINUTES): int,
                 }
             ),
             errors=errors,
