@@ -2,12 +2,11 @@
 
 import logging
 from datetime import datetime, timedelta
-
+import asyncio
 import requests
 from bs4 import BeautifulSoup
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-
 from .const import PEOPLE_API_URL
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,21 +37,30 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         )
 
     async def _async_update_data(self) -> dict:
-        """Fetch data from all the ISS sources."""
+        """Fetch data from all the ISS sources asynchronously."""
 
-        def fetch_data() -> dict:
-            """Inner function to fetch data sources."""
-            # Füge die Astronauten-Informationen hinzu
-            astronaut_count, astronaut_names = self._get_astronaut_info()
-            sightings = self._get_spot_the_station()
+        async def fetch_astronaut_info():
+            return await self.hass.async_add_executor_job(self._get_astronaut_info)
+
+        async def fetch_sightings():
+            return await self.hass.async_add_executor_job(self._get_spot_the_station)
+
+        try:
+            # Parallel ausführen und auf beide Tasks warten
+            astronaut_info, sightings = await asyncio.gather(
+                fetch_astronaut_info(),
+                fetch_sightings()
+            )
+
             return {
                 "next_sighting": sightings[0],
                 "all_sightings": sightings,
-                "astronaut_count": astronaut_count,
-                "astronaut_names": astronaut_names,
+                "astronaut_count": astronaut_info[0],
+                "astronaut_names": astronaut_info[1],
             }
-
-        return await self.hass.async_add_executor_job(fetch_data)
+        except Exception as e:
+            _LOGGER.error("Error updating ISS data: %s", e)
+            raise UpdateFailed(f"Error updating data: {e}")
 
     def _get_astronaut_info(self) -> tuple[int, list[str]]:
         """Get ISS Astronaut count and names from Open Notify API."""
