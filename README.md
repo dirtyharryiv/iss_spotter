@@ -7,17 +7,13 @@ The **ISS Spotter** integration for Home Assistant allows you to track upcoming 
 - Shows additional details, including duration, maximum elevation, and where the ISS will appear and disappear in the sky.
 - Number of Astronauts on ISS and their names (from open-notify).
 - Automatically updates when new sighting data is available.
-- Filter for maximum elevation
-- Creates a senosr entity that way it is easy to get notified when the ISS will show up.
+- Filter for minimum maximum elevation and minimum visible time.
 
 ## Installation
 
 1. **Install via HACS:**
-   - Open Home Assistant and go to **HACS**.
-   - Click on the three dots in the upper right corner
-   - Custom Repositories and add this repos url
-   - Search for **ISS Spotter**.
-   - Click **Install**.
+   - [![Open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dirtyharryiv&repository=iss_spotter&category=Integration)
+   - In the bottom right corner click **Download**.
 
 2. **Manual Installation:**
    - Download or clone this repository.
@@ -35,7 +31,7 @@ The **ISS Spotter** integration for Home Assistant allows you to track upcoming 
 - Go to **Configuration** > **Integrations** in Home Assistant.
 - Click **+ Add Integration** and search for **ISS Spotter**.
 - Enter the URL for the ISS sighting data (e.g., [Germany Freiburg im Breisgau](https://spotthestation.nasa.gov/sightings/view.cfm?country=Germany&region=None&city=Freiburg_im_Breisgau)).
-- Set a minimal height it should reach.
+- Set a minimal height it should reach and the minimum time in minutes it should be visible.
 - The integration will automatically create a sensor entity and fetch the sighting data.
 
 ### **How to Get the Correct URL for ISS Sightings**
@@ -81,14 +77,14 @@ def time_trigger_start_time():
     attributes = state.getattr("sensor.iss_freiburg_im_breisgau")
     visible_time = str(attributes["duration"])
     max_height = str(attributes["max_elevation"])
-    service.call("notify", "smarpthone", message="🌍🛰️New date for ISS sighting: " + date + "\nIt will be visible for " + visible_time + " and it will reach a height of " + max_height + ".")
+    service.call("notify", "smarpthone", message="🌍🛰️New date for ISS sighting: " + date + "\nIt will be visible for " + visible_time + " and it will reach a elevation of " + max_height + ".")
     time_trigger_factory("sensor.iss_freiburg_im_breisgau",notify_Func,"notify_Func","my_args")
 
 def notify_Func(arg):
     attributes = state.getattr("sensor.iss_freiburg_im_breisgau")
     visible_time = str(attributes["duration"])
     max_height = str(attributes["max_elevation"])
-    service.call("notify", "smartphone", message="👀🛰️The ISS will be visible IN " + str(time_in_minutes_to_notify_before) + " MINUTES! It will be visible for " + visible_time + " and it will reach a height of " + max_height + ".")
+    service.call("notify", "smartphone", message="👀🛰️The ISS will be visible IN " + str(time_in_minutes_to_notify_before) + " MINUTES! It will be visible for " + visible_time + " and it will reach a elevation of " + max_height + ".")
 
 def time_trigger_factory(sensor_entity,func_handle,func_name,*args,**kwargs):
     time_val = datetime.fromisoformat(str(state.get(sensor_entity))) - timedelta(minutes=time_in_minutes_to_notify_before)
