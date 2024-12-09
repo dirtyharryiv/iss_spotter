@@ -1,12 +1,14 @@
 """Class to manage fetching ISS sighting data from the Spot The Station website."""
 
+import asyncio
 import logging
 from datetime import datetime, timedelta
-import asyncio
+
 import requests
 from bs4 import BeautifulSoup
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+
 from .const import PEOPLE_API_URL
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,17 +41,15 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict:
         """Fetch data from all the ISS sources asynchronously."""
 
-        async def fetch_astronaut_info():
+        async def fetch_astronaut_info() -> None:
             return await self.hass.async_add_executor_job(self._get_astronaut_info)
 
-        async def fetch_sightings():
+        async def fetch_sightings() -> None:
             return await self.hass.async_add_executor_job(self._get_spot_the_station)
 
         try:
-            # Parallel ausführen und auf beide Tasks warten
             astronaut_info, sightings = await asyncio.gather(
-                fetch_astronaut_info(),
-                fetch_sightings()
+                fetch_astronaut_info(), fetch_sightings()
             )
 
             return {
@@ -58,9 +58,9 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                 "astronaut_count": astronaut_info[0],
                 "astronaut_names": astronaut_info[1],
             }
-        except Exception as e:
-            _LOGGER.error("Error updating ISS data: %s", e)
-            raise UpdateFailed(f"Error updating data: {e}")
+        except (requests.RequestException, ValueError, UpdateFailed) as e:
+            error_message = f"Error updating ISS data: {e}"
+            raise UpdateFailed(error_message) from e
 
     def _get_astronaut_info(self) -> tuple[int, list[str]]:
         """Get ISS Astronaut count and names from Open Notify API."""
