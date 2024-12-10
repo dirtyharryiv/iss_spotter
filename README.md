@@ -9,6 +9,8 @@ The **ISS Spotter** integration for Home Assistant allows you to track upcoming 
 - Automatically updates when new sighting data is available.
 - Filter for minimum maximum elevation and minimum visible time.
 
+![Sensor](img/sensor.png)
+
 ## Installation
 
 1. **Install via HACS:**
