@@ -1,5 +1,7 @@
 # ISS Spotter Integration for Home Assistant
 
+**Since this integration scrapes data from a website it can stop working at any time**
+
 The **ISS Spotter** integration for Home Assistant allows you to track upcoming ISS (International Space Station) sightings based on your location. This integration fetches data from the NASA Spot The Station website and presents it in Home Assistant as a `sensor` with the next visible sighting and additional details in the attributes.
 
 ## Features
