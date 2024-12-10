@@ -14,6 +14,7 @@ from .const import PEOPLE_API_URL
 _LOGGER = logging.getLogger(__name__)
 
 MIN_COLUMNS = 1
+GRACE_PERIOD = timedelta(minutes=60)
 
 
 class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
@@ -31,6 +32,8 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         self._url = url
         self._max_height = max_height
         self._min_minutes = min_minutes
+        self._last_valid_data = None
+        self._last_successful_time = None
         super().__init__(
             hass,
             _LOGGER,
@@ -52,15 +55,26 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                 fetch_astronaut_info(), fetch_sightings()
             )
 
-            return {
+            data = {
                 "next_sighting": sightings[0],
                 "all_sightings": sightings,
                 "astronaut_count": astronaut_info[0],
                 "astronaut_names": astronaut_info[1],
             }
+            self._last_valid_data = data
+            self._last_successful_time = datetime.now().astimezone()
         except (requests.RequestException, ValueError, UpdateFailed) as e:
+            if self._last_valid_data and self._last_successful_time:
+                time_since_last_success = (
+                    datetime.now().astimezone() - self._last_successful_time
+                )
+                if time_since_last_success <= GRACE_PERIOD:
+                    _LOGGER.info("Using cached data due to grace period.")
+                    return self._last_valid_data
             error_message = f"Error updating ISS data: {e}"
             raise UpdateFailed(error_message) from e
+        else:
+            return self._last_valid_data
 
     def _get_astronaut_info(self) -> tuple[int, list[str]]:
         """Get ISS Astronaut count and names from Open Notify API."""
