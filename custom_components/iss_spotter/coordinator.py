@@ -132,6 +132,9 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                     if datetime_object < now:
                         continue
 
+                    if datetime_object.month == 12 and now.month == 1:
+                        continue
+
                     visibility = columns[1].text.strip().split(" ")[0]
                     if int(visibility) < self._min_minutes:
                         continue
