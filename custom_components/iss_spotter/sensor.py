@@ -29,6 +29,7 @@ class SpotStationSensor(CoordinatorEntity):
         self._attr_name = name
         self._attr_unique_id = unique_id
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_device_class = "timestamp"
 
     @property
     def state(self) -> str | None:
