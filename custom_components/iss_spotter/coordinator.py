@@ -103,7 +103,7 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         """Get ISS next sightings from spot the station."""
         try:
             _LOGGER.debug("Fetching ISS data from URL: %s", self._url)
-            response = requests.get(self._url, timeout=20)
+            response = requests.get(self._url, timeout=60)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
             table = soup.select_one(
@@ -135,7 +135,11 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                     if datetime_object.month == 12 and now.month == 1:
                         continue
 
-                    visibility = columns[1].text.strip().split(" ")[0]
+                    if columns[1].text.strip().split(" ")[0].isdigit():
+                        visibility = columns[1].text.strip().split(" ")[0]
+                    else:
+                        visibility = columns[1].text.strip().split(" ")[1]
+
                     if int(visibility) < self._min_minutes:
                         continue
 
