@@ -56,11 +56,12 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             )
 
             data = {
-                "next_sighting": sightings[0],
                 "all_sightings": sightings,
                 "astronaut_count": astronaut_info[0],
                 "astronaut_names": astronaut_info[1],
             }
+            if sightings:
+                data["next_sighting"] = sightings[0]
             self._last_valid_data = data
             self._last_successful_time = datetime.now().astimezone()
         except (requests.RequestException, ValueError, UpdateFailed) as e:
@@ -111,7 +112,7 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                 "div.table-responsive > table:nth-child(2)"
             )
             if not table:
-                return self._handle_error("No table found")
+                return []  # return an empty list if the table is not found
 
             rows = table.find_all("tr")
             sightings = []
