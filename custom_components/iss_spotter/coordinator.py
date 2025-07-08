@@ -57,6 +57,8 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         async def fetch_sightings() -> None:
             return await self.hass.async_add_executor_job(self._get_skyfield_sightings)
 
+        tz = ZoneInfo(self.hass.config.time_zone)
+
         try:
             astronaut_info, sightings = await asyncio.gather(
                 fetch_astronaut_info(), fetch_sightings()
@@ -70,11 +72,11 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             if sightings:
                 data["next_sighting"] = sightings[0]
             self._last_valid_data = data
-            self._last_successful_time = datetime.now().astimezone()
+            self._last_successful_time = datetime.now().astimezone(tz)
         except (requests.RequestException, ValueError, UpdateFailed) as e:
             if self._last_valid_data and self._last_successful_time:
                 time_since_last_success = (
-                    datetime.now().astimezone() - self._last_successful_time
+                    datetime.now().astimezone(tz) - self._last_successful_time
                 )
                 if time_since_last_success <= GRACE_PERIOD:
                     _LOGGER.info("Using cached data due to grace period.")
