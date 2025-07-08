@@ -5,9 +5,12 @@
                 "title": "Configure ISS Spotter",
                 "description": "Give an url and a maximal height the ISS must reach.",
                 "data": {
-                    "url": "Spot the Station URL",
+                    "entity_name": "Name entity",
+                    "latitude": "Latitude",
+                    "longitude": "Longitude",
                     "max_height": "Maximal height",
-                    "min_minutes": "Minimum visibility in minutes"
+                    "min_minutes": "Minimum visibility in minutes",
+                    "days": "Days in the future"
                 }
             }
         },

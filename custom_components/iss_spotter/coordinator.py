@@ -3,13 +3,14 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import requests
-from bs4 import BeautifulSoup
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from skyfield.api import Topos, load
 
-from .const import PEOPLE_API_URL
+from .const import PEOPLE_API_URL, SUN_MAX_ELEVATION, TLE_URL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,15 +24,21 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
     def __init__(
         self,
         hass: HomeAssistant,
-        url: str,
+        entity_name: str,
+        latitude: float,
+        longitude: float,
         max_height: int,
         min_minutes: int,
+        days: int,
         update_interval: timedelta,
     ) -> None:
         """Initialize the coordinator."""
-        self._url = url
+        self._entity_name = entity_name
+        self._latitude = latitude
+        self._longitude = longitude
         self._max_height = max_height
         self._min_minutes = min_minutes
+        self._days = days
         self._last_valid_data = None
         self._last_successful_time = None
         super().__init__(
@@ -48,7 +55,7 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             return await self.hass.async_add_executor_job(self._get_astronaut_info)
 
         async def fetch_sightings() -> None:
-            return await self.hass.async_add_executor_job(self._get_spot_the_station)
+            return await self.hass.async_add_executor_job(self._get_skyfield_sightings)
 
         try:
             astronaut_info, sightings = await asyncio.gather(
@@ -100,74 +107,117 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         else:
             return astronaut_count, astronaut_names
 
-    def _get_spot_the_station(self) -> list[str]:
-        """Get ISS next sightings from spot the station."""
+    def _get_skyfield_sightings(self) -> list[dict]:
+        """Berechne ISS-Sichtungen mit Skyfield."""
         try:
-            _LOGGER.debug("Fetching ISS data from URL: %s", self._url)
-            response = requests.get(self._url, timeout=60)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-            table = soup.select_one(
-                "#content > div.col-md-11.col-md-offset-1 > "
-                "div.table-responsive > table:nth-child(2)"
+            _LOGGER.debug("Berechne ISS-Sichtungen mit Skyfield")
+
+            satellites = load.tle_file(TLE_URL)
+            by_name = {sat.name: sat for sat in satellites}
+            satellite = by_name["ISS (ZARYA)"]
+
+            ts = load.timescale()
+            observer = Topos(
+                latitude_degrees=self._latitude, longitude_degrees=self._longitude
             )
-            if not table:
-                return []  # return an empty list if the table is not found
 
-            rows = table.find_all("tr")
+            t0 = ts.now()
+            t1 = ts.now() + self._days
+
+            eph = load("de421.bsp")
+            sun = eph["sun"]
+            earth = eph["earth"]
+
+            t, events = satellite.find_events(
+                observer, t0, t1, altitude_degrees=self._max_height
+            )
+
             sightings = []
-            for row in rows:
-                columns = row.find_all("td")
-                if len(columns) >= MIN_COLUMNS:
-                    now = datetime.now().astimezone()
-                    sighting_date = datetime.strptime(
-                        columns[0].text.strip() + f" {now.year}",
-                        "%a %b %d, %I:%M %p %Y",
-                    ).astimezone()
+            for i in range(0, len(events), 3):
+                t_rise = t[i]
+                t_culminate = t[i + 1]
+                t_set = t[i + 2]
 
-                    datetime_object = datetime.strptime(
-                        columns[0].text.strip() + " " + str(now.year),
-                        "%a %b %d, %I:%M %p %Y",
-                    ).astimezone() + timedelta(minutes=5)
+                difference = satellite - observer
+                topocentric = difference.at(t_culminate)
+                alt, az, _ = topocentric.altaz()
+                max_elevation = alt.degrees
 
-                    if datetime_object < now:
-                        continue
+                observer_at_culm = earth + observer
+                sun_alt = (
+                    observer_at_culm.at(t_culminate)
+                    .observe(sun)
+                    .apparent()
+                    .altaz()[0]
+                    .degrees
+                )
+                observer_dark = sun_alt < SUN_MAX_ELEVATION
 
-                    if datetime_object.month == 12 and now.month == 1:
-                        continue
+                sunlit = satellite.at(t_culminate).is_sunlit(eph)
 
-                    if columns[1].text.strip().split(" ")[0].isdigit():
-                        visibility = columns[1].text.strip().split(" ")[0]
-                    else:
-                        visibility = columns[1].text.strip().split(" ")[1]
+                if observer_dark and sunlit:
+                    rise_dt = (
+                        t_rise.utc_datetime()
+                        .replace(tzinfo=ZoneInfo("UTC"))
+                        .astimezone(ZoneInfo("Europe/Berlin"))
+                    )
+                    set_dt = (
+                        t_set.utc_datetime()
+                        .replace(tzinfo=ZoneInfo("UTC"))
+                        .astimezone(ZoneInfo("Europe/Berlin"))
+                    )
 
-                    if int(visibility) < self._min_minutes:
-                        continue
+                    duration_sec = (set_dt - rise_dt).total_seconds()
+                    duration_min = int(duration_sec // 60)
+                    duration_rem = int(duration_sec % 60)
 
-                    height = columns[2].text.strip().split("°")[0]
-                    if int(height) < self._max_height:
+                    topocentric_rise = difference.at(t_rise)
+                    az_rise = topocentric_rise.altaz()[1].degrees
+                    directions = [
+                        (0, "N"),
+                        (22.5, "NNE"),
+                        (45, "NE"),
+                        (67.5, "ENE"),
+                        (90, "E"),
+                        (112.5, "ESE"),
+                        (135, "SE"),
+                        (157.5, "SSE"),
+                        (180, "S"),
+                        (202.5, "SSW"),
+                        (225, "SW"),
+                        (247.5, "WSW"),
+                        (270, "W"),
+                        (292.5, "WNW"),
+                        (315, "NW"),
+                        (337.5, "NNW"),
+                        (360, "N"),
+                    ]
+                    direction = next(
+                        name for angle, name in reversed(directions) if az_rise >= angle
+                    )
+
+                    if duration_min < self._min_minutes:
                         continue
 
                     sightings.append(
                         {
-                            "date": sighting_date.isoformat(),
-                            "duration": columns[1].text.strip(),
-                            "max_elevation": columns[2].text.strip(),
-                            "appear": columns[3].text.strip(),
-                            "disappear": columns[4].text.strip(),
+                            "date": rise_dt.replace(
+                                second=0, microsecond=0
+                            ).isoformat(),
+                            "duration": f"{duration_min}m{duration_rem}s",
+                            "max_elevation": f"{int(max_elevation)}°",
+                            "appear": direction,
                         }
                     )
 
             if not sightings:
-                return self._handle_error("No future sightings")
-        except requests.exceptions.RequestException as e:
-            return self._handle_error(f"Request failed: {e}")
-        except ValueError as e:
-            return self._handle_error(f"Value error occurred: {e}")
-        except UpdateFailed as e:
-            return self._handle_error(f"Update failed: {e}")
-        else:
+                raise UpdateFailed("No future visible ISS sightings")
+
             return sightings
+
+        except Exception as e:
+            _LOGGER.error(f"Skyfield error: {e}")
+            raise UpdateFailed(f"Skyfield error: {e}") from e
 
     def _handle_error(self, message: str) -> None:
         """Log and raise the error."""

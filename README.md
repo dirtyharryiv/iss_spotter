@@ -1,72 +1,70 @@
 # ISS Spotter Integration for Home Assistant
 
-**Since this integration scrapes data from a website it can stop working at any time**
+The **ISS Spotter** custom integration lets you track upcoming ISS (International Space Station) sightings for **your exact location**.
+It uses the [Skyfield](https://rhodesmill.org/skyfield/) library and live TLE data from [Celestrak](https://celestrak.org/) to compute visible ISS passes locally.
 
-The **ISS Spotter** integration for Home Assistant allows you to track upcoming ISS (International Space Station) sightings based on your location. This integration fetches data from the NASA Spot The Station website and presents it in Home Assistant as a `sensor` with the next visible sighting and additional details in the attributes.
+---
 
-## Features
-- Displays the next ISS sighting time.
-- Shows additional details, including duration, maximum elevation, and where the ISS will appear and disappear in the sky.
-- Number of Astronauts on ISS and their names (from open-notify).
-- Automatically updates when new sighting data is available.
-- Filter for minimum maximum elevation and minimum visible time.
+## ✨ Features
+
+✅ Predicts the next visible ISS sighting for your coordinates<br>
+✅ Filters passes by **minimum elevation** and **minimum visible duration**<br>
+✅ Shows number of astronauts currently on the ISS (from [Open Notify](http://api.open-notify.org/))<br>
+✅ Updates automatically
+
 
 ![Sensor](img/sensor.png)
 
-## Installation
+---
 
-1. **Install via HACS:**
-   - [![Open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dirtyharryiv&repository=iss_spotter&category=Integration)
-   - In the bottom right corner click **Download**.
+## ⚙️ Installation
 
-2. **Manual Installation:**
-   - Download or clone this repository.
-   - Place the `iss_spotter` folder in your Home Assistant `custom_components` directory.
-     ```bash
-     /config/custom_components/iss_spotter/
-     ```
+### 1) Install via HACS (Recommended)
 
-3. Restart Home Assistant to load the integration.
+[![Open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dirtyharryiv&repository=iss_spotter&category=Integration)
 
-## Configuration
+- Search for **ISS Spotter** under **HACS > Integrations**
+- Click **Download**
+- Restart Home Assistant
 
-### **Add the Integration via UI:**
+### 2) Manual Install
 
-- Go to **Configuration** > **Integrations** in Home Assistant.
-- Click **+ Add Integration** and search for **ISS Spotter**.
-- Enter the URL for the ISS sighting data (e.g., [Germany Freiburg im Breisgau](https://spotthestation.nasa.gov/sightings/view.cfm?country=Germany&region=None&city=Freiburg_im_Breisgau)).
-- Set a minimal height it should reach and the minimum time in minutes it should be visible.
-- The integration will automatically create a sensor entity and fetch the sighting data.
+- Clone or download this repository
+- Copy the folder to:
+  ```bash
+  /config/custom_components/iss_spotter/
+  ```
+- Restart Home Assistant
 
-### **How to Get the Correct URL for ISS Sightings**
+---
 
-To get the correct URL for the ISS sightings based on your location, follow these steps:
+## 🛰️ Configuration
 
-1. **Visit the NASA Spot the Station Website:**
+### Add via UI
 
-   - Go to [NASA Spot the Station](https://spotthestation.nasa.gov/).
+1. Go to **Settings > Devices & Services > + Add Integration**
+2. Search for **ISS Spotter**
+3. Enter:
+   - A name for your sensor
+   - **Latitude** & **Longitude** (your location)
+   - Minimum elevation (°) you want to consider
+   - Minimum visible duration (minutes)
+   - Time span in days to search ahead (e.g. 2)
 
-2. **Enter Your Location:**
+**Done!** The integration will create a sensor entity with:
+- `state`: next sighting date/time (ISO format)
+- `attributes`: duration, max elevation, appear direction, all upcoming sightings, astronaut count & names
 
-   - Enter your location in the **"City"** field. You can enter your city or a nearby city.
-
-3. **Get the URL:**
-
-   - After entering your location, you will see a map where you can choose the nearest viewpoint. Click on it.
-   - Look at the **URL** in your browser’s address bar. It should look something like this:
-     ```
-     https://spotthestation.nasa.gov/sightings/view.cfm?country=Germany&region=None&city=Freiburg_im_Breisgau
-     ```
-   - This URL is the one you need to use in the **ISS Spotter** integration configuration.
-
-4. **Use the URL in Home Assistant:**
-
-   - Copy the URL from your browser's address bar and paste it into the configuration of the **ISS Spotter** integration in Home Assistant.
+**Notes**
+- On first run it will take a short time to download the de421.bsp file. This is needed for calculations
+- If you upgrade from older versions you need to delete and reconfigure the integration
 
 
-## Notification
+---
 
-### pyscript
+## 🔔 Notifications
+
+### Example pyscript
 
 ```python
 from datetime import datetime, timedelta
@@ -81,29 +79,35 @@ def time_trigger_start_time():
     attributes = state.getattr("sensor.iss_freiburg_im_breisgau")
     visible_time = str(attributes["duration"])
     max_height = str(attributes["max_elevation"])
-    service.call("notify", "smarpthone", message="🌍🛰️New date for ISS sighting: " + date + "\nIt will be visible for " + visible_time + " and it will reach a elevation of " + max_height + ".")
-    time_trigger_factory("sensor.iss_freiburg_im_breisgau",notify_Func,"notify_Func","my_args")
+    service.call(
+        "notify",
+        "smartphone",
+        message=f"🌍🛰️ New ISS sighting: {date}\nVisible for {visible_time}, max elevation {max_height}."
+    )
+    time_trigger_factory("sensor.iss_freiburg_im_breisgau", notify_Func, "notify_Func")
 
-def notify_Func(arg):
+def notify_Func():
     attributes = state.getattr("sensor.iss_freiburg_im_breisgau")
     visible_time = str(attributes["duration"])
     max_height = str(attributes["max_elevation"])
-    service.call("notify", "smartphone", message="👀🛰️The ISS will be visible IN " + str(time_in_minutes_to_notify_before) + " MINUTES! It will be visible for " + visible_time + " and it will reach a elevation of " + max_height + ".")
+    service.call(
+        "notify",
+        "smartphone",
+        message=f"👀🛰️ The ISS will be visible in {time_in_minutes_to_notify_before} minutes! Visible for {visible_time}, max elevation {max_height}."
+    )
 
-def time_trigger_factory(sensor_entity,func_handle,func_name,*args,**kwargs):
+def time_trigger_factory(sensor_entity, func_handle, func_name):
     time_val = datetime.fromisoformat(str(state.get(sensor_entity))) - timedelta(minutes=time_in_minutes_to_notify_before)
     time_val = time_val.strftime('%Y-%m-%d %H:%M:%S')
 
     @time_trigger(f"once({time_val})")
     def func_trig():
-        nonlocal args, kwargs
-        func_handle(*args,**kwargs)
+        func_handle()
 
     time_triggers[func_name] = func_trig
 ```
 
-
-### yaml
+### Example yaml automation
 
 ```yaml
 alias: ISS Notification
@@ -116,20 +120,22 @@ condition: []
 action:
   - service: notify.mobile_app_your_device_name
     data:
-      title: "ISS sighting soon!"
+      title: "ISS sighting soon! 🛰️"
       message: >
-        The ISS will be visible in 3 minutes! Next sightings:
-        {{ states('sensor.iss_freiburg_im_breisgau') }}.
+        The ISS will be visible in 3 minutes!
+        Next sighting: {{ states('sensor.iss_freiburg_im_breisgau') }}.
       data:
         tag: iss_notification
 mode: single
 ```
 
+---
 
-## GUI
+## 📊 Lovelace example
 
-### Markdown card
+Use a Markdown card:
 ```markdown
-<ha-icon icon="mdi:space-station"></ha-icon>  {{ as_datetime(states('sensor.iss_freiburg_im_breisgau')).strftime('%m/%d/%Y %I:%M %p') }}
+<ha-icon icon="mdi:space-station"></ha-icon>
+{{ as_datetime(states('sensor.iss_freiburg_im_breisgau')).strftime('%d.%m.%Y %H:%M') }}
 ```
 ![Markdown Card](img/markdown_card.png)

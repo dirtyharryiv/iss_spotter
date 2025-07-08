@@ -3,19 +3,18 @@
 import logging
 from datetime import timedelta
 from typing import Any
-from urllib import parse
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity, UpdateFailed
 
 from .coordinator import ISSInfoUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-SCAN_INTERVAL = timedelta(minutes=5)  # Update interval
+SCAN_INTERVAL = timedelta(minutes=5)
 
 
 class SpotStationSensor(CoordinatorEntity):
@@ -47,7 +46,6 @@ class SpotStationSensor(CoordinatorEntity):
             "duration": next_sighting.get("duration"),
             "max_elevation": next_sighting.get("max_elevation"),
             "appear": next_sighting.get("appear"),
-            "disappear": next_sighting.get("disappear"),
             "all_sightings": self.coordinator.data.get("all_sightings", []),
             "astronaut_count": self.coordinator.data.get("astronaut_count"),
             "astronaut_names": self.coordinator.data.get("astronaut_names"),
@@ -60,19 +58,31 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Spot Station sensor based on a config entry."""
-    url = config_entry.data["url"]
+    entity_name = config_entry.data["entity_name"]
+    latitude = config_entry.data["latitude"]
+    longitude = config_entry.data["longitude"]
     max_height = config_entry.data["max_height"]
     min_minutes = config_entry.data["min_minutes"]
+    days = config_entry.data["days"]
     update_interval = SCAN_INTERVAL
 
     # Initialize the coordinator
     coordinator = ISSInfoUpdateCoordinator(
-        hass, url, max_height, min_minutes, update_interval
+        hass,
+        entity_name,
+        latitude,
+        longitude,
+        max_height,
+        min_minutes,
+        days,
+        update_interval,
     )
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except UpdateFailed as err:
+        raise ConfigEntryNotReady from err
 
     # Add the sensor with the coordinator
-    city = parse.parse_qs(parse.urlparse(url).query)["city"][0].replace("_", " ")
     async_add_entities(
-        [SpotStationSensor(coordinator, "ISS " + city, config_entry.entry_id)]
+        [SpotStationSensor(coordinator, "ISS " + entity_name, config_entry.entry_id)]
     )
