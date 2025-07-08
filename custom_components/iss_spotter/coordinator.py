@@ -155,16 +155,18 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
 
                 sunlit = satellite.at(t_culminate).is_sunlit(eph)
 
+                tz = ZoneInfo(self.hass.config.time_zone)
+
                 if observer_dark and sunlit:
                     rise_dt = (
                         t_rise.utc_datetime()
                         .replace(tzinfo=ZoneInfo("UTC"))
-                        .astimezone(ZoneInfo("Europe/Berlin"))
+                        .astimezone(tz)
                     )
                     set_dt = (
                         t_set.utc_datetime()
                         .replace(tzinfo=ZoneInfo("UTC"))
-                        .astimezone(ZoneInfo("Europe/Berlin"))
+                        .astimezone(tz)
                     )
 
                     duration_sec = (set_dt - rise_dt).total_seconds()
