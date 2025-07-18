@@ -14,7 +14,7 @@ from .coordinator import ISSInfoUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-SCAN_INTERVAL = timedelta(minutes=5)
+SCAN_INTERVAL = timedelta(seconds=60)
 
 
 class SpotStationSensor(CoordinatorEntity):
@@ -43,6 +43,9 @@ class SpotStationSensor(CoordinatorEntity):
         """Return additional attributes from the ISS feed."""
         next_sighting = self.coordinator.data.get("next_sighting", {})
         return {
+            "latitude": self.coordinator.data.get("latitude"),
+            "longitude": self.coordinator.data.get("longitude"),
+            "elevation": self.coordinator.data.get("elevation"),
             "duration": next_sighting.get("duration"),
             "max_elevation": next_sighting.get("max_elevation"),
             "appear": next_sighting.get("appear"),

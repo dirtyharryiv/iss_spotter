@@ -57,14 +57,20 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         async def fetch_sightings() -> None:
             return await self.hass.async_add_executor_job(self._get_skyfield_sightings)
 
+        async def fetch_position() -> None:
+            return await self.hass.async_add_executor_job(self._get_iss_position)
+
         tz = ZoneInfo(self.hass.config.time_zone)
 
         try:
-            astronaut_info, sightings = await asyncio.gather(
-                fetch_astronaut_info(), fetch_sightings()
+            astronaut_info, sightings, position = await asyncio.gather(
+                fetch_astronaut_info(), fetch_sightings(), fetch_position()
             )
 
             data = {
+                "latitude": position["latitude"],
+                "longitude": position["longitude"],
+                "elevation": position["elevation"],
                 "all_sightings": sightings,
                 "astronaut_count": astronaut_info[0],
                 "astronaut_names": astronaut_info[1],
@@ -215,13 +221,36 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                     )
 
             if not sightings:
-                raise UpdateFailed("No future visible ISS sightings")
-
+                msg = "No future visible ISS sightings"
+                raise UpdateFailed(msg)
             return sightings
 
-        except Exception as e:
-            _LOGGER.error(f"Skyfield error: {e}")
-            raise UpdateFailed(f"Skyfield error: {e}") from e
+        except Exception as err:
+            msg = f"Skyfield error: {err}"
+            _LOGGER.exception(msg)
+            raise UpdateFailed(msg) from err
+
+    def _get_iss_position(self) -> dict[str, float] | None:
+        """Berechne aktuelle Position der ISS."""
+        try:
+            satellites = load.tle_file(TLE_URL)
+            by_name = {sat.name: sat for sat in satellites}
+            satellite = by_name["ISS (ZARYA)"]
+
+            ts = load.timescale()
+            t_now = ts.now()
+            geocentric = satellite.at(t_now).subpoint()
+            if geocentric:
+                return {
+                    "latitude": geocentric.latitude.degrees,
+                    "longitude": geocentric.longitude.degrees,
+                    "elevation": geocentric.elevation.km,
+                }
+
+        except (KeyError, ValueError, OSError) as err:
+            msg = f"Could not get live ISS position: {err}"
+            _LOGGER.warning("%s", msg)
+            return None
 
     def _handle_error(self, message: str) -> None:
         """Log and raise the error."""
