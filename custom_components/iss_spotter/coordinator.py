@@ -39,7 +39,8 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         self._max_height = max_height
         self._min_minutes = min_minutes
         self._days = days
-        self._last_valid_data = None
+        self._last_valid_astronaut_count = None
+        self._last_valid_astronaut_names = None
         self._last_successful_time = None
         super().__init__(
             hass,
@@ -60,8 +61,6 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         async def fetch_position() -> None:
             return await self.hass.async_add_executor_job(self._get_iss_position)
 
-        tz = ZoneInfo(self.hass.config.time_zone)
-
         try:
             astronaut_info, sightings, position = await asyncio.gather(
                 fetch_astronaut_info(), fetch_sightings(), fetch_position()
@@ -77,23 +76,25 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             }
             if sightings:
                 data["next_sighting"] = sightings[0]
-            self._last_valid_data = data
-            self._last_successful_time = datetime.now().astimezone(tz)
+            # self._last_valid_data = data
+            # self._last_successful_time = datetime.now().astimezone(tz)
         except (requests.RequestException, ValueError, UpdateFailed) as e:
-            if self._last_valid_data and self._last_successful_time:
-                time_since_last_success = (
-                    datetime.now().astimezone(tz) - self._last_successful_time
-                )
-                if time_since_last_success <= GRACE_PERIOD:
-                    _LOGGER.info("Using cached data due to grace period.")
-                    return self._last_valid_data
+            # if self._last_valid_data and self._last_successful_time:
+            #     time_since_last_success = (
+            #         datetime.now().astimezone(tz) - self._last_successful_time
+            #     )
+            #     if time_since_last_success <= GRACE_PERIOD:
+            #         _LOGGER.info("Using cached data due to grace period.")
+            #         return self._last_valid_data
             error_message = f"Error updating ISS data: {e}"
             raise UpdateFailed(error_message) from e
         else:
-            return self._last_valid_data
+            return data
 
     def _get_astronaut_info(self) -> tuple[int, list[str]]:
         """Get ISS Astronaut count and names from Open Notify API."""
+        tz = ZoneInfo(self.hass.config.time_zone)
+
         try:
             _LOGGER.debug("Fetching ISS people from URL: %s", PEOPLE_API_URL)
             response = requests.get(PEOPLE_API_URL, timeout=20)
@@ -106,19 +107,34 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             ]
             astronaut_count = len(astronaut_names)
 
-        except requests.exceptions.RequestException as e:
-            return self._handle_error(f"Request failed: {e}")
-        except ValueError as e:
-            return self._handle_error(f"Value error occurred: {e}")
-        except UpdateFailed as e:
-            return self._handle_error(f"Update failed: {e}")
+            self._last_valid_astronaut_count = astronaut_count
+            self._last_valid_astronaut_names = astronaut_names
+            self._last_successful_time = datetime.now().astimezone(tz)
+
+        except (requests.RequestException, ValueError, UpdateFailed) as e:
+            if (
+                self._last_valid_astronaut_count
+                and self._last_valid_astronaut_names
+                and self._last_successful_time
+            ):
+                time_since_last_success = (
+                    datetime.now().astimezone(tz) - self._last_successful_time
+                )
+                if time_since_last_success <= GRACE_PERIOD:
+                    _LOGGER.info("Using cached astronaut data due to grace period.")
+                    return (
+                        self._last_valid_astronaut_count,
+                        self._last_valid_astronaut_names,
+                    )
+            error_message = f"Error updating astronaut data: {e}"
+            raise UpdateFailed(error_message) from e
         else:
             return astronaut_count, astronaut_names
 
     def _get_skyfield_sightings(self) -> list[dict]:
-        """Berechne ISS-Sichtungen mit Skyfield."""
+        """Calculate ISS-Sightings with Skyfield."""
         try:
-            _LOGGER.debug("Berechne ISS-Sichtungen mit Skyfield")
+            _LOGGER.debug("Calculating ISS-Sightings with Skyfield")
 
             satellites = load.tle_file(TLE_URL)
             by_name = {sat.name: sat for sat in satellites}
@@ -142,6 +158,8 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
 
             sightings = []
             for i in range(0, len(events), 3):
+                if i + 2 >= len(events):
+                    continue
                 t_rise = t[i]
                 t_culminate = t[i + 1]
                 t_set = t[i + 2]
@@ -231,8 +249,10 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(msg) from err
 
     def _get_iss_position(self) -> dict[str, float] | None:
-        """Berechne aktuelle Position der ISS."""
+        """Calculate ISS position with Skyfield."""
         try:
+            _LOGGER.debug("Calculating ISS position with Skyfield")
+
             satellites = load.tle_file(TLE_URL)
             by_name = {sat.name: sat for sat in satellites}
             satellite = by_name["ISS (ZARYA)"]
@@ -252,7 +272,7 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.warning("%s", msg)
             return None
 
-    def _handle_error(self, message: str) -> None:
-        """Log and raise the error."""
-        _LOGGER.error(message)
-        raise UpdateFailed(message)
+    # def _handle_error(self, message: str) -> None:
+    #     """Log and raise the error."""
+    #     _LOGGER.error(message)
+    #     raise UpdateFailed(message)

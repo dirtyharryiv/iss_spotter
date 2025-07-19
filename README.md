@@ -10,7 +10,7 @@ It uses the [Skyfield](https://rhodesmill.org/skyfield/) library and live TLE da
 ✅ Predicts the next visible ISS sighting for your coordinates<br>
 ✅ Filters passes by **minimum elevation** and **minimum visible duration**<br>
 ✅ Shows number of astronauts currently on the ISS (from [Open Notify](http://api.open-notify.org/))<br>
-✅ Updates automatically
+✅ Latitude, longitude and elevation attributes so you can use the sensor with a map card
 
 
 ![Sensor](img/sensor.png)
@@ -139,3 +139,15 @@ Use a Markdown card:
 {{ as_datetime(states('sensor.iss_freiburg_im_breisgau')).strftime('%d.%m.%Y %H:%M') }}
 ```
 ![Markdown Card](img/markdown_card.png)
+
+Use a Map card:
+```
+type: map
+entities:
+  - entity: sensor.iss_foobar
+    name: ISS Position
+theme_mode: auto
+default_zoom: 5
+hours_to_show: 2
+```
+![Map Card](img/map_card.png)
