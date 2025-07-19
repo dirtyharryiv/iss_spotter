@@ -76,16 +76,7 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             }
             if sightings:
                 data["next_sighting"] = sightings[0]
-            # self._last_valid_data = data
-            # self._last_successful_time = datetime.now().astimezone(tz)
         except (requests.RequestException, ValueError, UpdateFailed) as e:
-            # if self._last_valid_data and self._last_successful_time:
-            #     time_since_last_success = (
-            #         datetime.now().astimezone(tz) - self._last_successful_time
-            #     )
-            #     if time_since_last_success <= GRACE_PERIOD:
-            #         _LOGGER.info("Using cached data due to grace period.")
-            #         return self._last_valid_data
             error_message = f"Error updating ISS data: {e}"
             raise UpdateFailed(error_message) from e
         else:
@@ -271,8 +262,3 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             msg = f"Could not get live ISS position: {err}"
             _LOGGER.warning("%s", msg)
             return None
-
-    # def _handle_error(self, message: str) -> None:
-    #     """Log and raise the error."""
-    #     _LOGGER.error(message)
-    #     raise UpdateFailed(message)
