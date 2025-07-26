@@ -17,13 +17,13 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=60)
 
 
-class SpotStationSensor(CoordinatorEntity):
-    """Representation of the Spot Station sensor."""
+class ISSSpotterSensor(CoordinatorEntity):
+    """Representation of the ISS Spotter sensor."""
 
     def __init__(
         self, coordinator: ISSInfoUpdateCoordinator, name: str, unique_id: str
     ) -> None:
-        """Initialize the SpotStationSensor."""
+        """Initialize the ISSSpotterSensor."""
         super().__init__(coordinator)
         self._attr_name = name
         self._attr_unique_id = unique_id
@@ -60,7 +60,7 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Spot Station sensor based on a config entry."""
+    """Set up ISS Spotter sensor based on a config entry."""
     entity_name = config_entry.data["entity_name"]
     latitude = config_entry.data["latitude"]
     longitude = config_entry.data["longitude"]
@@ -69,7 +69,6 @@ async def async_setup_entry(
     days = config_entry.data["days"]
     update_interval = SCAN_INTERVAL
 
-    # Initialize the coordinator
     coordinator = ISSInfoUpdateCoordinator(
         hass,
         entity_name,
@@ -85,7 +84,6 @@ async def async_setup_entry(
     except UpdateFailed as err:
         raise ConfigEntryNotReady from err
 
-    # Add the sensor with the coordinator
     async_add_entities(
-        [SpotStationSensor(coordinator, "ISS " + entity_name, config_entry.entry_id)]
+        [ISSSpotterSensor(coordinator, "ISS " + entity_name, config_entry.entry_id)]
     )

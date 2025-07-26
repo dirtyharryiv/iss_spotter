@@ -17,8 +17,8 @@ from .const import (
 )
 
 
-class SpotStationConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Spot Station."""
+class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for ISS Spotter."""
 
     VERSION = 1
 

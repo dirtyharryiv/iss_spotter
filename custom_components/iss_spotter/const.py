@@ -10,3 +10,4 @@ DEFAULT_DAYS = 20
 TLE_URL = "http://celestrak.com/NORAD/elements/stations.txt"
 PEOPLE_API_URL = "http://api.open-notify.org/astros.json"
 SUN_MAX_ELEVATION = -6.0
+MAXIMUM_MINUTES = 15

@@ -10,12 +10,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from skyfield.api import Topos, load
 
-from .const import PEOPLE_API_URL, SUN_MAX_ELEVATION, TLE_URL
+from .const import PEOPLE_API_URL, SUN_MAX_ELEVATION, TLE_URL, MAXIMUM_MINUTES
 
 _LOGGER = logging.getLogger(__name__)
 
-MIN_COLUMNS = 1
 GRACE_PERIOD = timedelta(minutes=60)
+ASTRONAUT_UPDATE_INTERVAL = timedelta(minutes=30)
 
 
 class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
@@ -41,7 +41,10 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         self._days = days
         self._last_valid_astronaut_count = None
         self._last_valid_astronaut_names = None
-        self._last_successful_time = None
+        self._last_successful_astronaut_time = None
+        self._last_valid_sightings = None
+        self._last_successful_sighting_time = None
+        self._tz = ZoneInfo(hass.config.time_zone)
         super().__init__(
             hass,
             _LOGGER,
@@ -84,7 +87,19 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
 
     def _get_astronaut_info(self) -> tuple[int, list[str]]:
         """Get ISS Astronaut count and names from Open Notify API."""
-        tz = ZoneInfo(self.hass.config.time_zone)
+
+        now = datetime.now().astimezone(self._tz)
+        if (
+            self._last_valid_astronaut_count is not None
+            and self._last_valid_astronaut_names is not None
+            and self._last_successful_astronaut_time is not None
+            and (now - self._last_successful_astronaut_time) < ASTRONAUT_UPDATE_INTERVAL
+        ):
+            _LOGGER.debug("Returning cached astronaut data (last update <1h)")
+            return (
+                self._last_valid_astronaut_count,
+                self._last_valid_astronaut_names,
+            )
 
         try:
             _LOGGER.debug("Fetching ISS people from URL: %s", PEOPLE_API_URL)
@@ -100,16 +115,17 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
 
             self._last_valid_astronaut_count = astronaut_count
             self._last_valid_astronaut_names = astronaut_names
-            self._last_successful_time = datetime.now().astimezone(tz)
+            self._last_successful_astronaut_time = datetime.now().astimezone(self._tz)
 
         except (requests.RequestException, ValueError, UpdateFailed) as e:
             if (
                 self._last_valid_astronaut_count
                 and self._last_valid_astronaut_names
-                and self._last_successful_time
+                and self._last_successful_astronaut_time
             ):
                 time_since_last_success = (
-                    datetime.now().astimezone(tz) - self._last_successful_time
+                    datetime.now().astimezone(self._tz)
+                    - self._last_successful_astronaut_time
                 )
                 if time_since_last_success <= GRACE_PERIOD:
                     _LOGGER.info("Using cached astronaut data due to grace period.")
@@ -149,8 +165,6 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
 
             sightings = []
             for i in range(0, len(events), 3):
-                if i + 2 >= len(events):
-                    continue
                 t_rise = t[i]
                 t_culminate = t[i + 1]
                 t_set = t[i + 2]
@@ -172,18 +186,16 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
 
                 sunlit = satellite.at(t_culminate).is_sunlit(eph)
 
-                tz = ZoneInfo(self.hass.config.time_zone)
-
                 if observer_dark and sunlit:
                     rise_dt = (
                         t_rise.utc_datetime()
                         .replace(tzinfo=ZoneInfo("UTC"))
-                        .astimezone(tz)
+                        .astimezone(self._tz)
                     )
                     set_dt = (
                         t_set.utc_datetime()
                         .replace(tzinfo=ZoneInfo("UTC"))
-                        .astimezone(tz)
+                        .astimezone(self._tz)
                     )
 
                     duration_sec = (set_dt - rise_dt).total_seconds()
@@ -218,6 +230,9 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                     if duration_min < self._min_minutes:
                         continue
 
+                    if duration_min > MAXIMUM_MINUTES:
+                        continue
+
                     sightings.append(
                         {
                             "date": rise_dt.replace(
@@ -232,12 +247,27 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             if not sightings:
                 msg = "No future visible ISS sightings"
                 raise UpdateFailed(msg)
-            return sightings
+            else:
+                self._last_valid_sightings = sightings
+                self._last_successful_sighting_time = datetime.now().astimezone(
+                    self._tz
+                )
+
+                return sightings
 
         except Exception as err:
-            msg = f"Skyfield error: {err}"
-            _LOGGER.exception(msg)
-            raise UpdateFailed(msg) from err
+            if self._last_valid_sightings and self._last_successful_sighting_time:
+                time_since_last_success = (
+                    datetime.now().astimezone(self._tz)
+                    - self._last_successful_sighting_time
+                )
+                if time_since_last_success <= GRACE_PERIOD:
+                    _LOGGER.info("Using cached sightings data due to grace period.")
+                    return self._last_valid_sightings
+            else:
+                msg = f"Skyfield error: {err}"
+                _LOGGER.exception(msg)
+                raise UpdateFailed(msg) from err
 
     def _get_iss_position(self) -> dict[str, float] | None:
         """Calculate ISS position with Skyfield."""
