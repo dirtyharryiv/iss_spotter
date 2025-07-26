@@ -245,15 +245,14 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                     )
 
             if not sightings:
-                msg = "No future visible ISS sightings"
-                raise UpdateFailed(msg)
+                _LOGGER.debug("No ISS sightings found for your location.")
             else:
                 self._last_valid_sightings = sightings
                 self._last_successful_sighting_time = datetime.now().astimezone(
                     self._tz
                 )
 
-                return sightings
+            return sightings
 
         except Exception as err:
             if self._last_valid_sightings and self._last_successful_sighting_time:
@@ -265,9 +264,7 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                     _LOGGER.info("Using cached sightings data due to grace period.")
                     return self._last_valid_sightings
             else:
-                msg = f"Skyfield error: {err}"
-                _LOGGER.exception(msg)
-                raise UpdateFailed(msg) from err
+                return []
 
     def _get_iss_position(self) -> dict[str, float] | None:
         """Calculate ISS position with Skyfield."""

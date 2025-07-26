@@ -5,7 +5,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-__version__ = "2.1.2"
+__version__ = "2.1.3"
 
 _LOGGER = logging.getLogger(__name__)
 
