@@ -2,15 +2,24 @@
 
 import asyncio
 import logging
+import os
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from skyfield.api import Topos, load
+from skyfield.api import Loader, Topos, load
+from skyfield.iokit import parse_tle_file
 
-from .const import PEOPLE_API_URL, SUN_MAX_ELEVATION, TLE_URL, MAXIMUM_MINUTES
+from .const import (
+    MAXIMUM_MINUTES,
+    PEOPLE_API_URL,
+    SUN_MAX_ELEVATION,
+    TLE_CACHE_DAYS,
+    TLE_FILENAME,
+    TLE_URL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +54,9 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         self._last_valid_sightings = None
         self._last_successful_sighting_time = None
         self._tz = ZoneInfo(hass.config.time_zone)
+        cache_dir = hass.config.path("iss_spotter")
+        os.makedirs(cache_dir, exist_ok=True)
+        self._loader = Loader(cache_dir)
         super().__init__(
             hass,
             _LOGGER,
@@ -143,11 +155,12 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         try:
             _LOGGER.debug("Calculating ISS-Sightings with Skyfield")
 
-            satellites = load.tle_file(TLE_URL)
-            by_name = {sat.name: sat for sat in satellites}
-            satellite = by_name["ISS (ZARYA)"]
-
             ts = load.timescale()
+            satellite = self._load_satellite(ts)
+            if satellite is None:
+                _LOGGER.warning("ISS satellite not found in TLE data.")
+                return []
+
             observer = Topos(
                 latitude_degrees=self._latitude, longitude_degrees=self._longitude
             )
@@ -271,11 +284,12 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         try:
             _LOGGER.debug("Calculating ISS position with Skyfield")
 
-            satellites = load.tle_file(TLE_URL)
-            by_name = {sat.name: sat for sat in satellites}
-            satellite = by_name["ISS (ZARYA)"]
-
             ts = load.timescale()
+            satellite = self._load_satellite(ts)
+            if satellite is None:
+                _LOGGER.warning("ISS satellite not found in TLE data.")
+                return None
+
             t_now = ts.now()
             geocentric = satellite.at(t_now).subpoint()
             if geocentric:
@@ -289,3 +303,18 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             msg = f"Could not get live ISS position: {err}"
             _LOGGER.warning("%s", msg)
             return None
+
+    def _load_satellite(self, ts):
+        """Load ISS satellite TLE with controlled caching."""
+        if (
+            not self._loader.exists(TLE_FILENAME)
+            or self._loader.days_old(TLE_FILENAME) >= TLE_CACHE_DAYS
+        ):
+            _LOGGER.info("Refreshing TLE cache from %s", TLE_URL)
+            self._loader.download(TLE_URL, filename=TLE_FILENAME)
+
+        with self._loader.open(TLE_FILENAME) as fh:
+            satellites = list(parse_tle_file(fh, ts))
+
+        by_name = {sat.name: sat for sat in satellites}
+        return by_name.get("ISS (ZARYA)")
