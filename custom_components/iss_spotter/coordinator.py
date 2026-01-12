@@ -205,6 +205,11 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                         .replace(tzinfo=ZoneInfo("UTC"))
                         .astimezone(self._tz)
                     )
+                    culminate_dt = (
+                        t_culminate.utc_datetime()
+                        .replace(tzinfo=ZoneInfo("UTC"))
+                        .astimezone(self._tz)
+                    )
                     set_dt = (
                         t_set.utc_datetime()
                         .replace(tzinfo=ZoneInfo("UTC"))
@@ -248,9 +253,9 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
 
                     sightings.append(
                         {
-                            "date": rise_dt.replace(
-                                second=0, microsecond=0
-                            ).isoformat(),
+                            "date": rise_dt.replace(microsecond=0).isoformat(),
+                            "culminate": culminate_dt.replace(microsecond=0).isoformat(),
+                            "set": set_dt.replace(microsecond=0).isoformat(),
                             "duration": f"{duration_min}m{duration_rem}s",
                             "max_elevation": f"{int(max_elevation)}°",
                             "appear": direction,

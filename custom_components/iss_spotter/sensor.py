@@ -49,6 +49,8 @@ class ISSSpotterSensor(CoordinatorEntity):
             "duration": next_sighting.get("duration"),
             "max_elevation": next_sighting.get("max_elevation"),
             "appear": next_sighting.get("appear"),
+            "culminate": next_sighting.get("culminate"),
+            "set": next_sighting.get("set"),
             "all_sightings": self.coordinator.data.get("all_sightings", []),
             "astronaut_count": self.coordinator.data.get("astronaut_count"),
             "astronaut_names": self.coordinator.data.get("astronaut_names"),
