@@ -1,6 +1,6 @@
 {
     "name": "ISS Spotter",
     "hide_default_branch": true,
-    "homeassistant": "2024.6.0",
+    "homeassistant": "2025.1.4",
     "render_readme": true
 }
