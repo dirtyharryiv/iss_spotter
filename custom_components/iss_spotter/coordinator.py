@@ -127,17 +127,37 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                 alt, az, _ = topocentric.altaz()
                 max_elevation = alt.degrees
 
+                observer_at_rise = earth + observer
+                sun_alt_rise = (
+                    observer_at_rise.at(t_rise)
+                    .observe(sun)
+                    .apparent()
+                    .altaz()[0]
+                    .degrees
+                )
+
                 observer_at_culm = earth + observer
-                sun_alt = (
+                sun_alt_culm = (
                     observer_at_culm.at(t_culminate)
                     .observe(sun)
                     .apparent()
                     .altaz()[0]
                     .degrees
                 )
-                observer_dark = sun_alt < SUN_MAX_ELEVATION
+                observer_at_set = earth + observer
+                sun_alt_set = (
+                    observer_at_set.at(t_set).observe(sun).apparent().altaz()[0].degrees
+                )
+                observer_dark = (
+                    sun_alt_rise < SUN_MAX_ELEVATION
+                    or sun_alt_culm < SUN_MAX_ELEVATION
+                    or sun_alt_set < SUN_MAX_ELEVATION
+                )
 
-                sunlit = satellite.at(t_culminate).is_sunlit(eph)
+                sunlit_rise = satellite.at(t_rise).is_sunlit(eph)
+                sunlit_culm = satellite.at(t_culminate).is_sunlit(eph)
+                sunlit_set = satellite.at(t_set).is_sunlit(eph)
+                sunlit = sunlit_rise or sunlit_culm or sunlit_set
 
                 if observer_dark and sunlit:
                     rise_dt = (
