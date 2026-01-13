@@ -9,7 +9,6 @@ It uses the [Skyfield](https://rhodesmill.org/skyfield/) library and live TLE da
 
 ✅ Predicts the next visible ISS sighting for your coordinates<br>
 ✅ Filters passes by **minimum elevation** and **minimum visible duration**<br>
-✅ Shows number of astronauts currently on the ISS (from [Open Notify](http://api.open-notify.org/))<br>
 ✅ Latitude, longitude and elevation attributes so you can use the sensor with a map card
 
 
@@ -53,7 +52,7 @@ It uses the [Skyfield](https://rhodesmill.org/skyfield/) library and live TLE da
 
 **Done!** The integration will create a sensor entity with:
 - `state`: next sighting date/time (ISO format)
-- `attributes`: duration, max elevation, appear direction, all upcoming sightings, astronaut count & names
+- `attributes`: duration, max elevation, appear direction, all upcoming sightings
 
 **Notes**
 - On first run it will take a short time to download the de421.bsp file. This is needed for calculations

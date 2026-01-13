@@ -3,7 +3,9 @@
 import asyncio
 import logging
 import os
+import re
 from datetime import datetime, timedelta
+from html import unescape
 from zoneinfo import ZoneInfo
 
 import requests
@@ -11,10 +13,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from skyfield.api import Loader, Topos, load
 from skyfield.iokit import parse_tle_file
+from sqlalchemy import false
 
 from .const import (
     MAXIMUM_MINUTES,
-    PEOPLE_API_URL,
     SUN_MAX_ELEVATION,
     TLE_CACHE_DAYS,
     TLE_FILENAME,
@@ -24,7 +26,6 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 GRACE_PERIOD = timedelta(minutes=60)
-ASTRONAUT_UPDATE_INTERVAL = timedelta(minutes=30)
 
 
 class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
@@ -48,9 +49,6 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         self._max_height = max_height
         self._min_minutes = min_minutes
         self._days = days
-        self._last_valid_astronaut_count = None
-        self._last_valid_astronaut_names = None
-        self._last_successful_astronaut_time = None
         self._last_valid_sightings = None
         self._last_successful_sighting_time = None
         self._tz = ZoneInfo(hass.config.time_zone)
@@ -67,9 +65,6 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict:
         """Fetch data from all the ISS sources asynchronously."""
 
-        async def fetch_astronaut_info() -> None:
-            return await self.hass.async_add_executor_job(self._get_astronaut_info)
-
         async def fetch_sightings() -> None:
             return await self.hass.async_add_executor_job(self._get_skyfield_sightings)
 
@@ -77,8 +72,8 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             return await self.hass.async_add_executor_job(self._get_iss_position)
 
         try:
-            astronaut_info, sightings, position = await asyncio.gather(
-                fetch_astronaut_info(), fetch_sightings(), fetch_position()
+            sightings, position = await asyncio.gather(
+                fetch_sightings(), fetch_position()
             )
 
             data = {
@@ -86,8 +81,6 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                 "longitude": position["longitude"],
                 "elevation": position["elevation"],
                 "all_sightings": sightings,
-                "astronaut_count": astronaut_info[0],
-                "astronaut_names": astronaut_info[1],
             }
             if sightings:
                 data["next_sighting"] = sightings[0]
@@ -96,59 +89,6 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(error_message) from e
         else:
             return data
-
-    def _get_astronaut_info(self) -> tuple[int, list[str]]:
-        """Get ISS Astronaut count and names from Open Notify API."""
-
-        now = datetime.now().astimezone(self._tz)
-        if (
-            self._last_valid_astronaut_count is not None
-            and self._last_valid_astronaut_names is not None
-            and self._last_successful_astronaut_time is not None
-            and (now - self._last_successful_astronaut_time) < ASTRONAUT_UPDATE_INTERVAL
-        ):
-            _LOGGER.debug("Returning cached astronaut data (last update <1h)")
-            return (
-                self._last_valid_astronaut_count,
-                self._last_valid_astronaut_names,
-            )
-
-        try:
-            _LOGGER.debug("Fetching ISS people from URL: %s", PEOPLE_API_URL)
-            response = requests.get(PEOPLE_API_URL, timeout=20)
-            response.raise_for_status()
-            data = response.json()
-            astronaut_names = [
-                astronaut["name"]
-                for astronaut in data["people"]
-                if astronaut["craft"] == "ISS"
-            ]
-            astronaut_count = len(astronaut_names)
-
-            self._last_valid_astronaut_count = astronaut_count
-            self._last_valid_astronaut_names = astronaut_names
-            self._last_successful_astronaut_time = datetime.now().astimezone(self._tz)
-
-        except (requests.RequestException, ValueError, UpdateFailed) as e:
-            if (
-                self._last_valid_astronaut_count
-                and self._last_valid_astronaut_names
-                and self._last_successful_astronaut_time
-            ):
-                time_since_last_success = (
-                    datetime.now().astimezone(self._tz)
-                    - self._last_successful_astronaut_time
-                )
-                if time_since_last_success <= GRACE_PERIOD:
-                    _LOGGER.info("Using cached astronaut data due to grace period.")
-                    return (
-                        self._last_valid_astronaut_count,
-                        self._last_valid_astronaut_names,
-                    )
-            error_message = f"Error updating astronaut data: {e}"
-            raise UpdateFailed(error_message) from e
-        else:
-            return astronaut_count, astronaut_names
 
     def _get_skyfield_sightings(self) -> list[dict]:
         """Calculate ISS-Sightings with Skyfield."""
@@ -254,7 +194,9 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                     sightings.append(
                         {
                             "date": rise_dt.replace(microsecond=0).isoformat(),
-                            "culminate": culminate_dt.replace(microsecond=0).isoformat(),
+                            "culminate": culminate_dt.replace(
+                                microsecond=0
+                            ).isoformat(),
                             "set": set_dt.replace(microsecond=0).isoformat(),
                             "duration": f"{duration_min}m{duration_rem}s",
                             "max_elevation": f"{int(max_elevation)}°",

@@ -10,7 +10,8 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/dirtyharryiv/iss_spotter/issues",
   "requirements": [
+    "beautifulsoup4",
     "skyfield"
   ],
-  "version": "2.1.3"
+  "version": "2.2.0"
 }
