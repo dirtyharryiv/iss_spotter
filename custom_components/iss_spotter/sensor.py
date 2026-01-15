@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, UpdateFailed
 
 from .const import (
+    DEFAULT_SUN_MAX_ELEVATION,
     IGNORE_SHIFT_SECONDS,
 )
 
@@ -88,6 +89,9 @@ async def async_setup_entry(
     latitude = config_entry.data["latitude"]
     longitude = config_entry.data["longitude"]
     max_height = config_entry.data["max_height"]
+    sun_max_elevation = config_entry.data.get(
+        "sun_max_elevation", DEFAULT_SUN_MAX_ELEVATION
+    )
     min_minutes = config_entry.data["min_minutes"]
     days = config_entry.data["days"]
     update_interval = SCAN_INTERVAL
@@ -98,6 +102,7 @@ async def async_setup_entry(
         latitude,
         longitude,
         max_height,
+        sun_max_elevation,
         min_minutes,
         days,
         update_interval,

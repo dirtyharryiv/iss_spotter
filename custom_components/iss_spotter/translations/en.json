@@ -3,20 +3,28 @@
         "step": {
             "user": {
                 "title": "Configure ISS Spotter",
-                "description": "Give an url and a maximal height the ISS must reach.",
+                "description": "Choose whether to use Home Assistant's location.",
+                "data": {
+                    "use_ha_location": "Use Home Assistant location"
+                }
+            },
+            "location": {
+                "title": "Configure ISS Spotter",
+                "description": "Enter your location and visibility settings for ISS passes.",
                 "data": {
                     "entity_name": "Name entity",
                     "latitude": "Latitude",
                     "longitude": "Longitude",
                     "max_height": "Maximal height",
+                    "sun_max_elevation": "Sun elevation limit (°)",
                     "min_minutes": "Minimum visibility in minutes",
                     "days": "Days in the future"
                 }
             }
         },
         "error": {
-            "invalid_url": "That's not a valid url",
-            "no_spot_the_station_address": "The Address must start with https://spotthestation.nasa.gov/sightings/view.cfm?"
+            "invalid_latitude": "Latitude must be between -90 and 90.",
+            "invalid_longitude": "Longitude must be between -180 and 180."
         }
     }
 }

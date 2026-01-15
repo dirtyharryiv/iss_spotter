@@ -43,16 +43,18 @@ It uses the [Skyfield](https://rhodesmill.org/skyfield/) library and live TLE da
 
 1. Go to **Settings > Devices & Services > + Add Integration**
 2. Search for **ISS Spotter**
-3. Enter:
+3. Choose whether to use the **Home Assistant location**
+4. Enter:
    - A name for your sensor
-   - **Latitude** & **Longitude** (your location)
+   - **Latitude** & **Longitude** (only if not using HA location)
    - Minimum elevation (°) you want to consider
+   - Sun elevation limit (°) for darkness (e.g. -6)
    - Minimum visible duration (minutes)
-   - Time span in days to search ahead (e.g. 2)
+   - Time span in days to search ahead (1–14)
 
 **Done!** The integration will create a sensor entity with:
-- `state`: next sighting date/time (ISO format)
-- `attributes`: duration, max elevation, appear direction, all upcoming sightings
+- `state`: next sighting date/time (ISO format, minute-stable)
+- `attributes`: duration, max elevation, appear direction, culminate, set, all upcoming sightings
 
 **Notes**
 - On first run it will take a short time to download the de421.bsp file. This is needed for calculations

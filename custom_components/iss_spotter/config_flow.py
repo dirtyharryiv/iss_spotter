@@ -13,9 +13,16 @@ from .const import (
     DEFAULT_MAX_HEIGHT,
     DEFAULT_MIN_MINUTES,
     DEFAULT_NAME,
+    DEFAULT_SUN_MAX_ELEVATION,
     DOMAIN,
     MAX_DAYS,
     MIN_DAYS,
+    MIN_HEIGHT,
+    MAX_HEIGHT,
+    MIN_MINUTES,
+    MAX_MINUTES,
+    MAX_SUN_MAX_ELEVATION,
+    MIN_SUN_MAX_ELEVATION,
 )
 
 
@@ -32,16 +39,91 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
         self._max_height = None
         self._min_minutes = None
         self._days = None
+        self._sun_max_elevation = None
 
     async def async_step_user(self, user_input: dict | None = None) -> ConfigFlowResult:
         """Handle the user input for the configuration."""
         errors = {}
 
         if user_input is not None:
+            use_ha_location = user_input["use_ha_location"]
+            if use_ha_location:
+                self._latitude = self.hass.config.latitude
+                self._longitude = self.hass.config.longitude
+                return await self.async_step_location()
+            return await self.async_step_location()
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("use_ha_location", default=True): bool,
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_location(
+        self, user_input: dict | None = None
+    ) -> ConfigFlowResult:
+        """Handle manual location and settings input."""
+        errors = {}
+
+        if user_input is not None:
+            if self._latitude is None or self._longitude is None:
+                latitude = user_input["latitude"]
+                longitude = user_input["longitude"]
+                if not -90.0 <= latitude <= 90.0:
+                    errors["latitude"] = "invalid_latitude"
+                if not -180.0 <= longitude <= 180.0:
+                    errors["longitude"] = "invalid_longitude"
+                if errors:
+                    return self.async_show_form(
+                        step_id="location",
+                        data_schema=vol.Schema(
+                            {
+                                vol.Required("entity_name", default=DEFAULT_NAME): str,
+                                vol.Required(
+                                    "latitude",
+                                    default=latitude,
+                                ): float,
+                                vol.Required(
+                                    "longitude",
+                                    default=longitude,
+                                ): float,
+                                vol.Required(
+                                    "max_height", default=user_input["max_height"]
+                                ): vol.All(
+                                    int, vol.Range(min=MIN_HEIGHT, max=MAX_HEIGHT)
+                                ),
+                                vol.Required(
+                                    "sun_max_elevation",
+                                    default=user_input["sun_max_elevation"],
+                                ): vol.All(
+                                    int,
+                                    vol.Range(
+                                        min=MIN_SUN_MAX_ELEVATION,
+                                        max=MAX_SUN_MAX_ELEVATION,
+                                    ),
+                                ),
+                                vol.Required(
+                                    "min_minutes", default=user_input["min_minutes"]
+                                ): vol.All(
+                                    int, vol.Range(min=MIN_MINUTES, max=MAX_MINUTES)
+                                ),
+                                vol.Required(
+                                    "days", default=user_input["days"]
+                                ): vol.All(int, vol.Range(min=MIN_DAYS, max=MAX_DAYS)),
+                            }
+                        ),
+                        errors=errors,
+                    )
+                self._latitude = latitude
+                self._longitude = longitude
+
             self._entity_name = user_input["entity_name"]
-            self._latitude = user_input["latitude"]
-            self._longitude = user_input["longitude"]
             self._max_height = user_input["max_height"]
+            self._sun_max_elevation = user_input["sun_max_elevation"]
             self._min_minutes = user_input["min_minutes"]
             self._days = user_input["days"]
 
@@ -52,16 +134,33 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
                     "latitude": self._latitude,
                     "longitude": self._longitude,
                     "max_height": self._max_height,
+                    "sun_max_elevation": self._sun_max_elevation,
                     "min_minutes": self._min_minutes,
                     "days": self._days,
                 },
             )
 
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
+        data_schema = {
+            vol.Required("entity_name", default=DEFAULT_NAME): str,
+            vol.Required("max_height", default=DEFAULT_MAX_HEIGHT): vol.All(
+                int, vol.Range(min=MIN_HEIGHT, max=MAX_HEIGHT)
+            ),
+            vol.Required(
+                "sun_max_elevation", default=DEFAULT_SUN_MAX_ELEVATION
+            ): vol.All(
+                int,
+                vol.Range(min=MIN_SUN_MAX_ELEVATION, max=MAX_SUN_MAX_ELEVATION),
+            ),
+            vol.Required("min_minutes", default=DEFAULT_MIN_MINUTES): vol.All(
+                int, vol.Range(min=MIN_MINUTES, max=MAX_MINUTES)
+            ),
+            vol.Required("days", default=DEFAULT_DAYS): vol.All(
+                int, vol.Range(min=MIN_DAYS, max=MAX_DAYS)
+            ),
+        }
+        if self._latitude is None or self._longitude is None:
+            data_schema.update(
                 {
-                    vol.Required("entity_name", default=DEFAULT_NAME): str,
                     vol.Required(
                         "latitude",
                         default=DEFAULT_LATITUDE,
@@ -70,12 +169,11 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
                         "longitude",
                         default=DEFAULT_LONGITUDE,
                     ): float,
-                    vol.Required("max_height", default=DEFAULT_MAX_HEIGHT): int,
-                    vol.Required("min_minutes", default=DEFAULT_MIN_MINUTES): int,
-                    vol.Required("days", default=DEFAULT_DAYS): vol.All(
-                        int, vol.Range(min=MIN_DAYS, max=MAX_DAYS)
-                    ),
                 }
-            ),
+            )
+
+        return self.async_show_form(
+            step_id="location",
+            data_schema=vol.Schema(data_schema),
             errors=errors,
         )

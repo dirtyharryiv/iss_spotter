@@ -3,24 +3,15 @@
 import asyncio
 import logging
 import os
-import re
 from datetime import datetime, timedelta
-from html import unescape
 from zoneinfo import ZoneInfo
 
-import requests
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from skyfield.api import Loader, Topos, load
 from skyfield.iokit import parse_tle_file
-from sqlalchemy import false
 
-from .const import (
-    SUN_MAX_ELEVATION,
-    TLE_CACHE_DAYS,
-    TLE_FILENAME,
-    TLE_URL,
-)
+from .const import TLE_CACHE_DAYS, TLE_FILENAME, TLE_URL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +28,7 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         latitude: float,
         longitude: float,
         max_height: int,
+        sun_max_elevation: float,
         min_minutes: int,
         days: int,
         update_interval: timedelta,
@@ -46,6 +38,7 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
         self._latitude = latitude
         self._longitude = longitude
         self._max_height = max_height
+        self._sun_max_elevation = sun_max_elevation
         self._min_minutes = min_minutes
         self._days = days
         self._last_valid_sightings = None
@@ -83,7 +76,7 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
             }
             if sightings:
                 data["next_sighting"] = sightings[0]
-        except (requests.RequestException, ValueError, UpdateFailed) as e:
+        except (ValueError, UpdateFailed) as e:
             error_message = f"Error updating ISS data: {e}"
             raise UpdateFailed(error_message) from e
         else:
@@ -144,7 +137,7 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                     observer_at.at(t_samples).observe(sun).apparent().altaz()[0].degrees
                 )
                 visible = [
-                    bool(flag) and (alt < SUN_MAX_ELEVATION)
+                    bool(flag) and (alt < self._sun_max_elevation)
                     for flag, alt in zip(sunlit, sun_alt)
                 ]
                 if not any(visible):
