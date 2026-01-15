@@ -14,6 +14,8 @@ from .const import (
     DEFAULT_MIN_MINUTES,
     DEFAULT_NAME,
     DOMAIN,
+    MAX_DAYS,
+    MIN_DAYS,
 )
 
 
@@ -70,7 +72,9 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
                     ): float,
                     vol.Required("max_height", default=DEFAULT_MAX_HEIGHT): int,
                     vol.Required("min_minutes", default=DEFAULT_MIN_MINUTES): int,
-                    vol.Required("days", default=DEFAULT_DAYS): int,
+                    vol.Required("days", default=DEFAULT_DAYS): vol.All(
+                        int, vol.Range(min=MIN_DAYS, max=MAX_DAYS)
+                    ),
                 }
             ),
             errors=errors,
