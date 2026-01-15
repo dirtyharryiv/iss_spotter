@@ -10,6 +10,10 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, UpdateFailed
 
+from .const import (
+    IGNORE_SHIFT_SECONDS,
+)
+
 from .coordinator import ISSInfoUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,6 +33,7 @@ class ISSSpotterSensor(CoordinatorEntity):
         self._attr_unique_id = unique_id
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_class = "timestamp"
+        self._last_state_dt: datetime | None = None
 
     @property
     def state(self) -> str | None:
@@ -36,17 +41,25 @@ class ISSSpotterSensor(CoordinatorEntity):
         next_sighting = self.coordinator.data.get("next_sighting")
         if next_sighting:
             date_value = next_sighting.get("date")
-            return self._round_iso_to_minute(date_value) if date_value else None
+            return self._stable_state(date_value) if date_value else None
         return None
 
-    @staticmethod
-    def _round_iso_to_minute(value: str) -> str:
-        """Round ISO timestamp to minute precision for the state."""
+    def _stable_state(self, value: str) -> str:
+        """Ignore minor time shifts to avoid noisy updates."""
         try:
             dt = datetime.fromisoformat(value)
         except ValueError:
             return value
-        return dt.replace(second=0, microsecond=0).isoformat()
+
+        if self._last_state_dt is None:
+            self._last_state_dt = dt
+            return value
+
+        if abs((dt - self._last_state_dt).total_seconds()) <= IGNORE_SHIFT_SECONDS:
+            return self._last_state_dt.isoformat()
+
+        self._last_state_dt = dt
+        return value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
