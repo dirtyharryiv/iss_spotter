@@ -1,7 +1,7 @@
 """Custom component for tracking ISS sightings in Home Assistant."""
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
@@ -35,8 +35,18 @@ class ISSSpotterSensor(CoordinatorEntity):
         """Return the state as the next ISS sighting time."""
         next_sighting = self.coordinator.data.get("next_sighting")
         if next_sighting:
-            return next_sighting.get("date")
+            date_value = next_sighting.get("date")
+            return self._round_iso_to_minute(date_value) if date_value else None
         return None
+
+    @staticmethod
+    def _round_iso_to_minute(value: str) -> str:
+        """Round ISO timestamp to minute precision for the state."""
+        try:
+            dt = datetime.fromisoformat(value)
+        except ValueError:
+            return value
+        return dt.replace(second=0, microsecond=0).isoformat()
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
