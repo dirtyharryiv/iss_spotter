@@ -16,7 +16,6 @@ from skyfield.iokit import parse_tle_file
 from sqlalchemy import false
 
 from .const import (
-    MAXIMUM_MINUTES,
     SUN_MAX_ELEVATION,
     TLE_CACHE_DAYS,
     TLE_FILENAME,
@@ -123,106 +122,103 @@ class ISSInfoUpdateCoordinator(DataUpdateCoordinator):
                 t_set = t[i + 2]
 
                 difference = satellite - observer
-                topocentric = difference.at(t_culminate)
-                alt, az, _ = topocentric.altaz()
-                max_elevation = alt.degrees
 
-                observer_at_rise = earth + observer
-                sun_alt_rise = (
-                    observer_at_rise.at(t_rise)
-                    .observe(sun)
-                    .apparent()
-                    .altaz()[0]
-                    .degrees
+                start_dt = t_rise.utc_datetime().replace(tzinfo=ZoneInfo("UTC"))
+                end_dt = t_set.utc_datetime().replace(tzinfo=ZoneInfo("UTC"))
+                if end_dt <= start_dt:
+                    continue
+
+                step_seconds = 5
+                times = []
+                current = start_dt
+                while current <= end_dt:
+                    times.append(current)
+                    current += timedelta(seconds=step_seconds)
+                if times[-1] != end_dt:
+                    times.append(end_dt)
+
+                t_samples = ts.from_datetimes(times)
+                sunlit = satellite.at(t_samples).is_sunlit(eph)
+                observer_at = earth + observer
+                sun_alt = (
+                    observer_at.at(t_samples).observe(sun).apparent().altaz()[0].degrees
+                )
+                visible = [
+                    bool(flag) and (alt < SUN_MAX_ELEVATION)
+                    for flag, alt in zip(sunlit, sun_alt)
+                ]
+                if not any(visible):
+                    continue
+
+                visible_indices = [i for i, v in enumerate(visible) if v]
+                first_idx = visible_indices[0]
+                last_idx = visible_indices[-1]
+                t_visible_rise = t_samples[first_idx]
+                t_visible_set = t_samples[last_idx]
+
+                alt_samples = difference.at(t_samples).altaz()[0].degrees
+                max_idx = max(visible_indices, key=lambda i: alt_samples[i])
+                t_visible_culm = t_samples[max_idx]
+                max_elevation = alt_samples[max_idx]
+
+                rise_dt = (
+                    t_visible_rise.utc_datetime()
+                    .replace(tzinfo=ZoneInfo("UTC"))
+                    .astimezone(self._tz)
+                )
+                culminate_dt = (
+                    t_visible_culm.utc_datetime()
+                    .replace(tzinfo=ZoneInfo("UTC"))
+                    .astimezone(self._tz)
+                )
+                set_dt = (
+                    t_visible_set.utc_datetime()
+                    .replace(tzinfo=ZoneInfo("UTC"))
+                    .astimezone(self._tz)
                 )
 
-                observer_at_culm = earth + observer
-                sun_alt_culm = (
-                    observer_at_culm.at(t_culminate)
-                    .observe(sun)
-                    .apparent()
-                    .altaz()[0]
-                    .degrees
+                duration_sec = (set_dt - rise_dt).total_seconds()
+                duration_min = int(duration_sec // 60)
+                duration_rem = int(duration_sec % 60)
+
+                topocentric_rise = difference.at(t_visible_rise)
+                az_rise = topocentric_rise.altaz()[1].degrees
+                directions = [
+                    (0, "N"),
+                    (22.5, "NNE"),
+                    (45, "NE"),
+                    (67.5, "ENE"),
+                    (90, "E"),
+                    (112.5, "ESE"),
+                    (135, "SE"),
+                    (157.5, "SSE"),
+                    (180, "S"),
+                    (202.5, "SSW"),
+                    (225, "SW"),
+                    (247.5, "WSW"),
+                    (270, "W"),
+                    (292.5, "WNW"),
+                    (315, "NW"),
+                    (337.5, "NNW"),
+                    (360, "N"),
+                ]
+                direction = next(
+                    name for angle, name in reversed(directions) if az_rise >= angle
                 )
-                observer_at_set = earth + observer
-                sun_alt_set = (
-                    observer_at_set.at(t_set).observe(sun).apparent().altaz()[0].degrees
+
+                if duration_min < self._min_minutes:
+                    continue
+
+                sightings.append(
+                    {
+                        "date": rise_dt.replace(microsecond=0).isoformat(),
+                        "culminate": culminate_dt.replace(microsecond=0).isoformat(),
+                        "set": set_dt.replace(microsecond=0).isoformat(),
+                        "duration": f"{duration_min}m{duration_rem}s",
+                        "max_elevation": f"{int(max_elevation)}°",
+                        "appear": direction,
+                    }
                 )
-                observer_dark = (
-                    sun_alt_rise < SUN_MAX_ELEVATION
-                    or sun_alt_culm < SUN_MAX_ELEVATION
-                    or sun_alt_set < SUN_MAX_ELEVATION
-                )
-
-                sunlit_rise = satellite.at(t_rise).is_sunlit(eph)
-                sunlit_culm = satellite.at(t_culminate).is_sunlit(eph)
-                sunlit_set = satellite.at(t_set).is_sunlit(eph)
-                sunlit = sunlit_rise or sunlit_culm or sunlit_set
-
-                if observer_dark and sunlit:
-                    rise_dt = (
-                        t_rise.utc_datetime()
-                        .replace(tzinfo=ZoneInfo("UTC"))
-                        .astimezone(self._tz)
-                    )
-                    culminate_dt = (
-                        t_culminate.utc_datetime()
-                        .replace(tzinfo=ZoneInfo("UTC"))
-                        .astimezone(self._tz)
-                    )
-                    set_dt = (
-                        t_set.utc_datetime()
-                        .replace(tzinfo=ZoneInfo("UTC"))
-                        .astimezone(self._tz)
-                    )
-
-                    duration_sec = (set_dt - rise_dt).total_seconds()
-                    duration_min = int(duration_sec // 60)
-                    duration_rem = int(duration_sec % 60)
-
-                    topocentric_rise = difference.at(t_rise)
-                    az_rise = topocentric_rise.altaz()[1].degrees
-                    directions = [
-                        (0, "N"),
-                        (22.5, "NNE"),
-                        (45, "NE"),
-                        (67.5, "ENE"),
-                        (90, "E"),
-                        (112.5, "ESE"),
-                        (135, "SE"),
-                        (157.5, "SSE"),
-                        (180, "S"),
-                        (202.5, "SSW"),
-                        (225, "SW"),
-                        (247.5, "WSW"),
-                        (270, "W"),
-                        (292.5, "WNW"),
-                        (315, "NW"),
-                        (337.5, "NNW"),
-                        (360, "N"),
-                    ]
-                    direction = next(
-                        name for angle, name in reversed(directions) if az_rise >= angle
-                    )
-
-                    if duration_min < self._min_minutes:
-                        continue
-
-                    if duration_min > MAXIMUM_MINUTES:
-                        continue
-
-                    sightings.append(
-                        {
-                            "date": rise_dt.replace(microsecond=0).isoformat(),
-                            "culminate": culminate_dt.replace(
-                                microsecond=0
-                            ).isoformat(),
-                            "set": set_dt.replace(microsecond=0).isoformat(),
-                            "duration": f"{duration_min}m{duration_rem}s",
-                            "max_elevation": f"{int(max_elevation)}°",
-                            "appear": direction,
-                        }
-                    )
 
             if not sightings:
                 _LOGGER.debug("No ISS sightings found for your location.")
