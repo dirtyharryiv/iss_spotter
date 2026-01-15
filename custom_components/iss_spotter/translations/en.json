@@ -20,11 +20,35 @@
                     "min_minutes": "Minimum visibility in minutes",
                     "days": "Days in the future"
                 }
+            },
+            "reconfigure": {
+                "title": "Reconfigure ISS Spotter",
+                "description": "Choose whether to use Home Assistant's location.",
+                "data": {
+                    "use_ha_location": "Use Home Assistant location"
+                }
+            },
+            "reconfigure_location": {
+                "title": "Reconfigure ISS Spotter",
+                "description": "Update your location and visibility settings.",
+                "data": {
+                    "entity_name": "Name entity",
+                    "latitude": "Latitude",
+                    "longitude": "Longitude",
+                    "max_height": "Maximal height",
+                    "sun_max_elevation": "Sun elevation limit (°)",
+                    "min_minutes": "Minimum visibility in minutes",
+                    "days": "Days in the future"
+                }
             }
         },
         "error": {
             "invalid_latitude": "Latitude must be between -90 and 90.",
             "invalid_longitude": "Longitude must be between -180 and 180."
+        },
+        "abort": {
+            "reconfigure_successful": "Reconfiguration completed.",
+            "reconfigure_failed": "Reconfiguration failed."
         }
     }
 }

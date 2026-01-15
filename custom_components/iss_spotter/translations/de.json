@@ -20,11 +20,35 @@
                     "min_minutes": "Mindestens sichtbar in Minuten",
                     "days": "Tage in der Zukunft"
                 }
+            },
+            "reconfigure": {
+                "title": "ISS Spotter neu konfigurieren",
+                "description": "Wähle, ob der Home-Assistant-Standort verwendet werden soll.",
+                "data": {
+                    "use_ha_location": "Home-Assistant-Standort verwenden"
+                }
+            },
+            "reconfigure_location": {
+                "title": "ISS Spotter neu konfigurieren",
+                "description": "Standort und Sichtbarkeits-Einstellungen anpassen.",
+                "data": {
+                    "entity_name": "Name Entität",
+                    "latitude": "Breitengrad",
+                    "longitude": "Längengrad",
+                    "max_height": "Maximale Mindesthöhe",
+                    "sun_max_elevation": "Sonnenhöhe-Grenze (°)",
+                    "min_minutes": "Mindestens sichtbar in Minuten",
+                    "days": "Tage in der Zukunft"
+                }
             }
         },
         "error": {
             "invalid_latitude": "Breitengrad muss zwischen -90 und 90 liegen.",
             "invalid_longitude": "Längengrad muss zwischen -180 und 180 liegen."
+        },
+        "abort": {
+            "reconfigure_successful": "Neu-Konfiguration abgeschlossen.",
+            "reconfigure_failed": "Neu-Konfiguration fehlgeschlagen."
         }
     }
 }
