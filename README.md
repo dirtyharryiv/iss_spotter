@@ -9,7 +9,8 @@ It uses the [Skyfield](https://rhodesmill.org/skyfield/) library and live TLE da
 
 ✅ Predicts the next visible ISS sighting for your coordinates<br>
 ✅ Filters passes by **minimum elevation** and **minimum visible duration**<br>
-✅ Latitude, longitude and elevation attributes so you can use the sensor with a map card
+✅ Latitude, longitude and elevation attributes so you can use the sensor with a map card<br>
+✅ Optional current ISS astronaut list from [The Space Devs](https://ll.thespacedevs.com/docs/)
 
 
 ![Sensor](img/sensor.png)
@@ -51,14 +52,22 @@ It uses the [Skyfield](https://rhodesmill.org/skyfield/) library and live TLE da
    - Sun elevation limit (°) for darkness (e.g. -6)
    - Minimum visible duration (minutes)
    - Time span in days to search ahead (1–14)
+   - Optional SpaceDevs astronaut list for current ISS crew
 
 **Done!** The integration will create a sensor entity with:
 - `state`: next sighting date/time (ISO format, minute-stable)
 - `attributes`: duration, max elevation, appear direction, culminate, set, all upcoming sightings
 
+If the SpaceDevs astronaut list is enabled, a second sensor is created:
+- `state`: number of astronauts currently listed for the ISS
+- `attributes`: names, compact astronaut details and last update time
+
+The SpaceDevs sensor updates every 15 minutes to stay comfortably below public API rate limits.
+
 **Notes**
 - On first run it will take a short time to download the de421.bsp file. This is needed for calculations
 - If you upgrade from older versions you need to delete and reconfigure the integration
+- AI assistance was used during development of this integration
 
 
 ---

@@ -18,7 +18,8 @@
                     "max_height": "Maximal height",
                     "sun_max_elevation": "Sun elevation limit (°)",
                     "min_minutes": "Minimum visibility in minutes",
-                    "days": "Days in the future"
+                    "days": "Days in the future",
+                    "spacedevs_astronauts": "TheSpaceDevs astronaut list"
                 }
             },
             "reconfigure": {
@@ -38,7 +39,8 @@
                     "max_height": "Maximal height",
                     "sun_max_elevation": "Sun elevation limit (°)",
                     "min_minutes": "Minimum visibility in minutes",
-                    "days": "Days in the future"
+                    "days": "Days in the future",
+                    "spacedevs_astronauts": "TheSpaceDevs astronaut list"
                 }
             }
         },

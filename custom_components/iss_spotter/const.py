@@ -20,3 +20,8 @@ TLE_URL = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle
 TLE_FILENAME = "stations.tle"
 TLE_CACHE_DAYS = 1
 IGNORE_SHIFT_SECONDS = 5
+CONF_SPACEDEVS_ASTRONAUTS = "spacedevs_astronauts"
+DEFAULT_SPACEDEVS_ASTRONAUTS = False
+SPACEDEVS_API_BASE_URL = "https://lldev.thespacedevs.com/2.3.0"
+SPACEDEVS_ISS_SPACE_STATION_ID = 4
+SPACEDEVS_UPDATE_MINUTES = 15

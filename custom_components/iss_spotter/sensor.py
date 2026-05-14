@@ -1,25 +1,19 @@
 """Custom component for tracking ISS sightings in Home Assistant."""
 
-import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity, UpdateFailed
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import (
-    DEFAULT_SUN_MAX_ELEVATION,
-    IGNORE_SHIFT_SECONDS,
+from .const import DOMAIN, IGNORE_SHIFT_SECONDS
+from .coordinator import (
+    ISSInfoUpdateCoordinator,
+    SpaceDevsAstronautsUpdateCoordinator,
 )
-
-from .coordinator import ISSInfoUpdateCoordinator
-
-_LOGGER = logging.getLogger(__name__)
-
-SCAN_INTERVAL = timedelta(seconds=60)
 
 
 class ISSSpotterSensor(CoordinatorEntity):
@@ -34,6 +28,7 @@ class ISSSpotterSensor(CoordinatorEntity):
         self._attr_unique_id = unique_id
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_class = "timestamp"
+        self._attr_attribution = "ISS Data provided by Celestrak"
         self._last_state_dt: datetime | None = None
 
     @property
@@ -79,6 +74,42 @@ class ISSSpotterSensor(CoordinatorEntity):
         }
 
 
+class SpaceDevsAstronautsSensor(CoordinatorEntity):
+    """Representation of the SpaceDevs ISS astronaut sensor."""
+
+    def __init__(
+        self,
+        coordinator: SpaceDevsAstronautsUpdateCoordinator,
+        name: str,
+        unique_id: str,
+    ) -> None:
+        """Initialize the SpaceDevsAstronautsSensor."""
+        super().__init__(coordinator)
+        self._attr_name = name
+        self._attr_unique_id = unique_id
+        self._attr_icon = "mdi:account-group"
+        self._attr_attribution = "Astronaut Data provided by The Space Devs"
+
+    @property
+    def state(self) -> int | None:
+        """Return the number of astronauts currently listed for the ISS."""
+        if self.coordinator.data is None:
+            return None
+
+        data = self.coordinator.data or {}
+        return data.get("count", 0)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return compact SpaceDevs astronaut attributes."""
+        data = self.coordinator.data or {}
+        return {
+            "names": data.get("names", []),
+            "astronauts": data.get("astronauts", []),
+            "last_updated": data.get("last_updated"),
+        }
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -86,32 +117,22 @@ async def async_setup_entry(
 ) -> None:
     """Set up ISS Spotter sensor based on a config entry."""
     entity_name = config_entry.data["entity_name"]
-    latitude = config_entry.data["latitude"]
-    longitude = config_entry.data["longitude"]
-    max_height = config_entry.data["max_height"]
-    sun_max_elevation = config_entry.data.get(
-        "sun_max_elevation", DEFAULT_SUN_MAX_ELEVATION
-    )
-    min_minutes = config_entry.data["min_minutes"]
-    days = config_entry.data["days"]
-    update_interval = SCAN_INTERVAL
+    entry_data = hass.data[DOMAIN][config_entry.entry_id]
+    entities = []
+    coordinator = entry_data["coordinator"]
 
-    coordinator = ISSInfoUpdateCoordinator(
-        hass,
-        entity_name,
-        latitude,
-        longitude,
-        max_height,
-        sun_max_elevation,
-        min_minutes,
-        days,
-        update_interval,
+    entities.append(
+        ISSSpotterSensor(coordinator, "ISS " + entity_name, config_entry.entry_id)
     )
-    try:
-        await coordinator.async_config_entry_first_refresh()
-    except UpdateFailed as err:
-        raise ConfigEntryNotReady from err
 
-    async_add_entities(
-        [ISSSpotterSensor(coordinator, "ISS " + entity_name, config_entry.entry_id)]
-    )
+    spacedevs_coordinator = entry_data.get("spacedevs_coordinator")
+    if spacedevs_coordinator is not None:
+        entities.append(
+            SpaceDevsAstronautsSensor(
+                spacedevs_coordinator,
+                f"ISS {entity_name} Astronauts",
+                f"{config_entry.entry_id}_spacedevs_astronauts",
+            )
+        )
+
+    async_add_entities(entities)

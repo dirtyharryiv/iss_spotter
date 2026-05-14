@@ -7,21 +7,23 @@ from homeassistant.config_entries import (
 )
 
 from .const import (
+    CONF_SPACEDEVS_ASTRONAUTS,
     DEFAULT_DAYS,
     DEFAULT_LATITUDE,
     DEFAULT_LONGITUDE,
     DEFAULT_MAX_HEIGHT,
     DEFAULT_MIN_MINUTES,
     DEFAULT_NAME,
+    DEFAULT_SPACEDEVS_ASTRONAUTS,
     DEFAULT_SUN_MAX_ELEVATION,
     DOMAIN,
     MAX_DAYS,
-    MIN_DAYS,
-    MIN_HEIGHT,
     MAX_HEIGHT,
-    MIN_MINUTES,
     MAX_MINUTES,
     MAX_SUN_MAX_ELEVATION,
+    MIN_DAYS,
+    MIN_HEIGHT,
+    MIN_MINUTES,
     MIN_SUN_MAX_ELEVATION,
 )
 
@@ -40,6 +42,7 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
         self._min_minutes = None
         self._days = None
         self._sun_max_elevation = None
+        self._spacedevs_astronauts = None
         self._reconfigure_entry = None
 
     async def async_step_user(self, user_input: dict | None = None) -> ConfigFlowResult:
@@ -161,6 +164,16 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
                                     "days",
                                     default=entry_data.get("days", DEFAULT_DAYS),
                                 ): vol.All(int, vol.Range(min=MIN_DAYS, max=MAX_DAYS)),
+                                vol.Required(
+                                    CONF_SPACEDEVS_ASTRONAUTS,
+                                    default=user_input.get(
+                                        CONF_SPACEDEVS_ASTRONAUTS,
+                                        entry_data.get(
+                                            CONF_SPACEDEVS_ASTRONAUTS,
+                                            DEFAULT_SPACEDEVS_ASTRONAUTS,
+                                        ),
+                                    ),
+                                ): bool,
                             }
                         ),
                         errors=errors,
@@ -177,9 +190,13 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
                 "sun_max_elevation": user_input["sun_max_elevation"],
                 "min_minutes": user_input["min_minutes"],
                 "days": user_input["days"],
+                CONF_SPACEDEVS_ASTRONAUTS: user_input[CONF_SPACEDEVS_ASTRONAUTS],
             }
             self.hass.config_entries.async_update_entry(
                 self._reconfigure_entry, data=updated
+            )
+            await self.hass.config_entries.async_reload(
+                self._reconfigure_entry.entry_id
             )
             return self.async_abort(reason="reconfigure_successful")
 
@@ -203,6 +220,12 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
             vol.Required("days", default=entry_data.get("days", DEFAULT_DAYS)): vol.All(
                 int, vol.Range(min=MIN_DAYS, max=MAX_DAYS)
             ),
+            vol.Required(
+                CONF_SPACEDEVS_ASTRONAUTS,
+                default=entry_data.get(
+                    CONF_SPACEDEVS_ASTRONAUTS, DEFAULT_SPACEDEVS_ASTRONAUTS
+                ),
+            ): bool,
         }
         if self._latitude is None or self._longitude is None:
             data_schema.update(
@@ -275,6 +298,13 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
                                 vol.Required(
                                     "days", default=user_input["days"]
                                 ): vol.All(int, vol.Range(min=MIN_DAYS, max=MAX_DAYS)),
+                                vol.Required(
+                                    CONF_SPACEDEVS_ASTRONAUTS,
+                                    default=user_input.get(
+                                        CONF_SPACEDEVS_ASTRONAUTS,
+                                        DEFAULT_SPACEDEVS_ASTRONAUTS,
+                                    ),
+                                ): bool,
                             }
                         ),
                         errors=errors,
@@ -287,6 +317,7 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
             self._sun_max_elevation = user_input["sun_max_elevation"]
             self._min_minutes = user_input["min_minutes"]
             self._days = user_input["days"]
+            self._spacedevs_astronauts = user_input[CONF_SPACEDEVS_ASTRONAUTS]
 
             return self.async_create_entry(
                 title="ISS Next Sightings " + self._entity_name,
@@ -298,6 +329,7 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
                     "sun_max_elevation": self._sun_max_elevation,
                     "min_minutes": self._min_minutes,
                     "days": self._days,
+                    CONF_SPACEDEVS_ASTRONAUTS: self._spacedevs_astronauts,
                 },
             )
 
@@ -318,6 +350,9 @@ class ISSSpotterConfigFlow(ConfigFlow, domain=DOMAIN):
             vol.Required("days", default=DEFAULT_DAYS): vol.All(
                 int, vol.Range(min=MIN_DAYS, max=MAX_DAYS)
             ),
+            vol.Required(
+                CONF_SPACEDEVS_ASTRONAUTS, default=DEFAULT_SPACEDEVS_ASTRONAUTS
+            ): bool,
         }
         if self._latitude is None or self._longitude is None:
             data_schema.update(

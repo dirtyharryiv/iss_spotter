@@ -18,7 +18,8 @@
                     "max_height": "Maximale Mindesthöhe",
                     "sun_max_elevation": "Sonnenhöhe-Grenze (°)",
                     "min_minutes": "Mindestens sichtbar in Minuten",
-                    "days": "Tage in der Zukunft"
+                    "days": "Tage in der Zukunft",
+                    "spacedevs_astronauts": "Astronauten Liste von TheSpaceDevs"
                 }
             },
             "reconfigure": {
@@ -38,7 +39,8 @@
                     "max_height": "Maximale Mindesthöhe",
                     "sun_max_elevation": "Sonnenhöhe-Grenze (°)",
                     "min_minutes": "Mindestens sichtbar in Minuten",
-                    "days": "Tage in der Zukunft"
+                    "days": "Tage in der Zukunft",
+                    "spacedevs_astronauts": "Astronauten Liste von TheSpaceDevs"
                 }
             }
         },
