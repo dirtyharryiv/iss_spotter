@@ -1,47 +1,150 @@
 ---
-name: "Bug report"
-description: "Report a bug with the integration"
-labels: "Bug"
+name: Bug report
+description: Report something that is not working in ISS Spotter
+title: "[Bug]: "
+labels:
+  - bug
 body:
-- type: markdown
-  attributes:
-    value: Before you open a new issue, search through the existing issues to see if others have had the same problem.
-- type: checkboxes
-  attributes:
-    label: Checklist
-    options:
-      - label: I have filled out the issue template to the best of my ability.
-        required: true
-      - label: This issue only contains 1 issue (if you have multiple issues, open one issue for each issue).
-        required: true
-      - label: This issue is not a duplicate issue of any [previous issues](https://github.com/dirtyharryiv/iss_spotter/issues?q=is%3Aissue+label%3A%22Bug%22+)..
-        required: true
-- type: textarea
-  attributes:
-    label: "Describe the issue"
-    description: "A clear and concise description of what the issue is."
-  validations:
-    required: true
-- type: textarea
-  attributes:
-    label: Reproduction steps
-    description: "Without steps to reproduce, it will be hard to fix. It is very important that you fill out this part. Issues without it will be closed."
-    value: |
-      1.
-      2.
-      3.
-      ...
-  validations:
-    required: true
-- type: textarea
-  attributes:
-    label: "Debug logs"
-    description: "To enable debug logs check this https://www.home-assistant.io/integrations/logger/, this **needs** to include _everything_ from startup of Home Assistant to the point where you encounter the issue."
-    render: text
-  validations:
-    required: false
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. Please search existing issues first and update to the latest ISS Spotter release if possible.
 
-- type: textarea
-  attributes:
-    label: "Diagnostics dump"
-    description: "Drag the diagnostics dump file here. (see https://www.home-assistant.io/integrations/diagnostics/ for info)"
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing open and closed issues for the same problem.
+          required: true
+        - label: This report is about one specific problem.
+          required: true
+        - label: I restarted Home Assistant after installing or updating the integration.
+          required: true
+
+  - type: input
+    id: integration_version
+    attributes:
+      label: ISS Spotter version
+      description: You can find this in HACS or in `custom_components/iss_spotter/manifest.json`.
+      placeholder: "2.4.0"
+    validations:
+      required: true
+
+  - type: input
+    id: home_assistant_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2026.6.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation_method
+    attributes:
+      label: Installation method
+      options:
+        - HACS
+        - Manual copy
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected_area
+    attributes:
+      label: Affected area
+      options:
+        - Setup or config flow
+        - Main ISS sighting sensor
+        - ISS position attributes or map card
+        - SpaceDevs astronaut sensor
+        - Icon or branding
+        - Other or not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Configuration
+      description: Share the relevant settings. Approximate location is fine; do not post exact home coordinates if you do not want to.
+      value: |
+        - Location source: Home Assistant location / manual coordinates
+        - Approximate location or region:
+        - Minimum elevation:
+        - Sun elevation limit:
+        - Minimum visibility in minutes:
+        - Days in the future:
+        - SpaceDevs astronaut list enabled: yes/no
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the visible symptom. For example, `unknown` state, missing entity, wrong pass duration, missing icon, or an error message.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Steps to reproduce
+      description: List the smallest set of steps that triggers the problem.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: sensor_state
+    attributes:
+      label: Sensor state and attributes
+      description: If a sensor exists, copy the state and relevant attributes from Developer Tools > States.
+      render: yaml
+    validations:
+      required: false
+
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Comparison source
+      description: For missing or incorrect sightings, add the expected pass time/elevation and the source you compared against, such as Heavens Above or Astroviewer.
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug logs
+      description: Enable debug logging for `custom_components.iss_spotter`, reproduce the issue, then paste the relevant log lines. If there are no relevant logs, write that here.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag screenshots here if the problem is visible in the UI.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add anything else that may help understand the problem.
+    validations:
+      required: false
